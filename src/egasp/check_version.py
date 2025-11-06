@@ -12,7 +12,9 @@ from platformdirs import user_cache_dir
 from egasp.language import set_language
 from egasp.version import __project_name__, __version__
 
-_ = set_language('check_version')
+import os
+if not os.getenv('SKIP_TRANSLATION'):
+    _ = set_language('check_version')
 
 API_URL = f"https://api.github.com/repos/YanMing-lxb/{__project_name__}/releases/latest"
 
