@@ -58,7 +58,7 @@ jobs:
       run: |
         cd ${{ github.workspace }}
         $env:PYTHONIOENCODING = "utf-8"  # 使用PowerShell环境变量语法
-        uv run ${{ github.workspace }}\tools\pack.py
+        uv run ${{ github.workspace }}\tools\pack.py pack
       shell: pwsh
 
     - name: Store the distribution packages
