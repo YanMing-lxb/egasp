@@ -68,7 +68,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: windows-python-package-distributions
-        path: dist/egasp.exe
+        path: dist/egasp/egasp.exe
 
   publish-to-pypi:
     name: Publish 🐍 egasp 📦 to PyPI  # 定义发布到PyPI作业的名称
