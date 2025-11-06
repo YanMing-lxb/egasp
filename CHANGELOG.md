@@ -19,7 +19,7 @@
  *  -----------------------------------------------------------------------
  * Author       : 焱铭
  * Date         : 2025-04-24 12:30:56 +0800
- * LastEditTime : 2025-11-06 20:40:18 +0800
+ * LastEditTime : 2025-11-07 00:01:57 +0800
  * Github       : https://github.com/YanMing-lxb/
  * FilePath     : /egasp/CHANGELOG.md
  * Description  : 
@@ -43,7 +43,7 @@
 ### 其他
 - 新增 CHANGELOG.md 文件，用于记录版本更新日志。
  -->
-## v0.1.4
+## v0.1.5
 
 ### ⚡ ♻️ 重构与优化
 - **核心类名重构**：将核心类 `EG_ASP_Core` 重命名为 EGASP，提高命名的简洁性和一致性
@@ -73,6 +73,9 @@ from egasp.core import EGASP
 core = EGASP()
 result = core.props(...)
 ```
+## v0.1.4
+
+由于 workflow 配置错误，导致只能跳过该版本
 
 ## v0.1.3
 
