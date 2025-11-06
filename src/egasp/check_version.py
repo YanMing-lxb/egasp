@@ -9,12 +9,8 @@ from packaging import version
 from datetime import timedelta
 from platformdirs import user_cache_dir
 
-from egasp.language import set_language
 from egasp.version import __project_name__, __version__
 
-import os
-if not os.getenv('SKIP_TRANSLATION'):
-    _ = set_language('check_version')
 
 API_URL = f"https://api.github.com/repos/YanMing-lxb/{__project_name__}/releases/latest"
 
@@ -78,11 +74,11 @@ class UpdateChecker():
             if cache_path.exists() and (cache_time_remaining > 0):  # 检查缓存文件是否存在且未过期
                 with cache_path.open('r') as f:  # 打开缓存文件
                     data = toml.load(f)  # 加载缓存文件内容
-                    self.logger.info(_(f"读取版本缓存文件中的版本号，缓存有效期: ") + f'{int(hours):02} h {int(minutes):02} min {int(seconds):02} s')  # 记录日志信息
-                    self.logger.info(_("版本缓存文件路径: ") + str(self.cache_file))  # 记录日志信息
+                    self.logger.info(f"读取版本缓存文件中的版本号，缓存有效期: {int(hours):02} h {int(minutes):02} min {int(seconds):02} s")  # 记录日志信息
+                    self.logger.info("版本缓存文件路径: " + str(self.cache_file))  # 记录日志信息
                     return data.get("latest_version")  # 返回最新版本号
         except Exception as e:
-            self.logger.error(_("加载缓存版本时出错: ") + str(e))  # 记录错误信息
+            self.logger.error("加载缓存版本时出错: " + str(e))  # 记录错误信息
         return None  # 如果加载失败或缓存文件无效,返回 None
 
     # --------------------------------------------------------------------------------
@@ -105,7 +101,7 @@ class UpdateChecker():
                 toml.dump({"latest_version": latest_version}, f)
         except Exception as e:
             # 如果更新缓存时出错,记录错误日志
-            self.logger.error(_("更新版本缓存时出错: ") + str(e))
+            self.logger.error("更新版本缓存时出错: " + str(e))
 
     # --------------------------------------------------------------------------------
     # 定义 网络获取版本信息函数
@@ -132,7 +128,7 @@ class UpdateChecker():
                 latest_version = data['tag_name'].lstrip('v')  # 去除可能存在的v前缀
                 parsed_version = version.parse(latest_version)
                 
-                self.logger.info(_("通过 GitHub API 获取最新版本成功"))
+                self.logger.info("通过 GitHub API 获取最新版本成功")
                 return parsed_version
                 
         except urllib.error.HTTPError as e:
@@ -140,17 +136,17 @@ class UpdateChecker():
             if e.code == 403 and 'X-RateLimit-Remaining' in e.headers:
                 reset_time = time.strftime("%Y-%m-%d %H:%M:%S", 
                     time.localtime(int(e.headers['X-RateLimit-Reset'])))
-                self.logger.error(_("API速率限制，重置时间：%s") % reset_time)
+                self.logger.error(f"API速率限制，重置时间：{reset_time}")
             else:
-                self.logger.error(_("请求失败，状态码：%d") % e.code)
+                self.logger.error(f"请求失败，状态码：{e.code}")
         except json.JSONDecodeError:
-            self.logger.error(_("响应数据解析失败"))
+            self.logger.error("响应数据解析失败")
         except KeyError:
-            self.logger.error(_("响应中缺少版本信息"))
+            self.logger.error("响应中缺少版本信息")
         except Exception as e:
-            self.logger.error(_("获取GitHub版本失败：") + str(e))
+            self.logger.error(f"获取GitHub版本失败：{str(e)}")
         finally:
-            self.logger.info(_("请求耗时：%.2f秒") % (time.time()-start_time))
+            self.logger.info(f"请求耗时：{time.time()-start_time} 秒")
         
         return None   
 
@@ -183,7 +179,7 @@ class UpdateChecker():
         current_version = version.parse(__version__)
 
         if current_version < latest_version:
-            print(_("有新版本可用: ") + f"[bold green]{latest_version}[/bold green] " + _("当前版本: ") + f"[bold red]{current_version}[/bold red]")
-            print(_("python库请运行 [bold green]'pip install --upgrade %(args)s'[/bold green] 进行更新，独立可执行文件则请去 https://github.com/YanMing-lxb/egasp/releases/latest 下载") % {'args': __project_name__})
+            print(f"有新版本可用: [bold green]{latest_version}[/bold green] " + f"当前版本: [bold red]{current_version}[/bold red]")
+            print(f"python库请运行 [bold green]'pip install --upgrade {__project_name__}'[/bold green] 进行更新，独立可执行文件则请去 https://github.com/YanMing-lxb/egasp/releases/latest 下载")
         else:
-            print(_("当前版本: ") + f"[bold green]{current_version}[/bold green]")
+            print(f"当前版本: [bold green]{current_version}[/bold green]")

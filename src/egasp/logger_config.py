@@ -23,14 +23,10 @@ Description  :
  -----------------------------------------------------------------------
 '''
 
-import os
 import logging
 from rich.logging import RichHandler  # 导入rich库的日志处理模块
 
-from egasp.language import set_language
 
-if not os.getenv('SKIP_TRANSLATION'):
-    _ = set_language('logger_config')
 
 
 # --------------------------------------------------------------------------------
