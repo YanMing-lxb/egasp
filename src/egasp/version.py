@@ -26,4 +26,4 @@ Description  :
 #!/usr/bin/env python
 
 script_name = 'egasp'
-__version__ = '0.1.3'
+__version__ = '0.1.4'

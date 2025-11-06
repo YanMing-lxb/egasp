@@ -19,7 +19,7 @@
  *  -----------------------------------------------------------------------
  * Author       : 焱铭
  * Date         : 2025-04-24 12:30:56 +0800
- * LastEditTime : 2025-05-06 14:32:36 +0800
+ * LastEditTime : 2025-11-06 20:40:18 +0800
  * Github       : https://github.com/YanMing-lxb/
  * FilePath     : /egasp/CHANGELOG.md
  * Description  : 
@@ -43,6 +43,36 @@
 ### 其他
 - 新增 CHANGELOG.md 文件，用于记录版本更新日志。
  -->
+## v0.1.4
+
+### ⚡ ♻️ 重构与优化
+- **核心类名重构**：将核心类 `EG_ASP_Core` 重命名为 EGASP，提高命名的简洁性和一致性
+- **方法命名优化**：
+  - get_egasp → props
+  - get_props → prop
+  - get_fb_props → fb_props
+- **代码结构优化**：改进整体代码组织结构，提升可读性和维护性
+
+### 📝 文档完善
+- **完善方法文档字符串**：为所有公共方法添加详细的 docstring，包括参数说明、返回值和异常处理描述
+- **增强参数说明**：提供更清晰的参数类型和用途说明
+- **提升用户体验**：通过完善文档提高库的易用性和可理解性
+
+### ⚠️ 破坏性变更
+- 此版本包含非兼容性更新，需要所有调用方同步修改函数引用
+- 建议用户更新代码以适应新的类名和方法名
+
+```python
+# 旧版本用法
+from egasp.egasp_core import EG_ASP_Core
+core = EG_ASP_Core()
+result = core.get_egasp(...)
+
+# 新版本用法
+from egasp.core import EGASP
+core = EGASP()
+result = core.props(...)
+```
 
 ## v0.1.3
 
@@ -98,7 +128,7 @@
 
 ## v0.0.5
 
-### 🎉新增
+### ✨ 新增
 
 - 新增 logo 图标
 - 新增 build 脚本，用来打包应用程序
@@ -125,7 +155,7 @@
 
 ## v0.0.2
 
-### 🎉新增
+### ✨ 新增
 
 - 使用bisect模块的bisect_left和bisect_right方法替代原始的全遍历方式
 - 新增_find_nearest_nodes辅助函数统一处理节点查找逻辑
@@ -146,11 +176,11 @@
 
 - 基本实现命令行功能。
 - 主体查询功能已经实现
-- get_egasp 完善注释，并且设置好默认值
+- props 完善注释，并且设置好默认值
 
 ### 🚀 改进
 
-- get_egasp 完善注释，并且设置好默认值
+- props 完善注释，并且设置好默认值
 - init 文件完善说明
 
 ### 🐛 修复
