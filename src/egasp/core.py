@@ -103,7 +103,7 @@ class EGASP:
         except IndexError as e:
             self._error_exit(f"节点索引错误: {str(e)}")
 
-    def prop(self, temp: float, conc: float, egp_key: str, temp_range: Tuple[int, int] = (-35, 125), conc_range: Tuple[float, float] = (10.0, 90.0), temp_step: int = 5, conc_step: float = 10.0) -> float:
+    def prop(self, temp: float, conc: float, egp_key: str) -> float:
         """根据温度和浓度计算指定物性参数
         
         使用双线性插值法计算乙二醇水溶液在给定温度和浓度下的物性参数。
@@ -117,14 +117,6 @@ class EGASP:
             体积浓度值，单位为百分比(%)，应在[conc_range[0], conc_range[1]]范围内
         egp_key : str
             物性参数标识符，可选值: 'rho'(密度)、'cp'(比热容)、'k'(导热系数)、'mu'(动力粘度)
-        temp_range : Tuple[int, int], optional
-            温度范围，格式为(最小温度, 最大温度)，默认值为(-35, 125)
-        conc_range : Tuple[float, float], optional
-            浓度范围，格式为(最小浓度, 最大浓度)，默认值为(10.0, 90.0)
-        temp_step : int, optional
-            温度步长，用于生成温度节点，默认值为5
-        conc_step : float, optional
-            浓度步长，用于生成浓度节点，默认值为10.0
 
         Returns
         -------
@@ -136,6 +128,12 @@ class EGASP:
         SystemExit
             当参数不合法或数据缺失时退出程序
         """        
+        temp_range = (-35, 125) # 温度范围
+        conc_range = (10.0, 90.0) # 浓度范围
+        temp_step = 5 # 温度步长，用于生成温度节点
+        conc_step = 10.0 # 浓度步长，用于生成浓度节点
+
+
         if egp_key not in ['rho', 'cp', 'k', 'mu']:
             self._error_exit(f"无效物性参数 {egp_key}，可选值: rho/cp/k/mu")
 
