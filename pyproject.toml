@@ -10,7 +10,13 @@ authors = [
 ]
 description = "乙二醇水溶液属性查询程序 Ethylene Glycol Aqueous Solution Properties Program"
 keywords = ["Ethylene Glycol", "Properties"]
-dependencies = ["rich", "rich_argparse", "toml", "packaging", "platformdirs"]
+dependencies = [
+    "rich>=14.0.0",
+    "rich-argparse>=1.7.1",
+    "toml>=0.10.2",
+    "packaging>=25.0",
+    "platformdirs>=4.3.8",
+]
 readme = "README.md"
 requires-python = ">=3.9"
 license = "GPL-3.0-or-later"
@@ -30,6 +36,11 @@ classifiers = [
 [project.urls]
 "Homepage" = "https://github.com/YanMing-lxb/egasp"
 "Bug Tracker" = "https://github.com/YanMing-lxb/egasp/issues"
+
+[[tool.uv.index]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
+publish-url = "https://pypi.org/project/egasp"
+default = true
 
 [project.scripts]
 egasp = "egasp:main"
