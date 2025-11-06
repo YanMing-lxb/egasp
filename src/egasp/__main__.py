@@ -16,7 +16,7 @@
  -----------------------------------------------------------------------
 Author       : 焱铭
 Date         : 2025-04-22 10:43:55 +0800
-LastEditTime : 2025-05-06 14:11:23 +0800
+LastEditTime : 2025-11-06 20:15:51 +0800
 Github       : https://github.com/YanMing-lxb/
 FilePath     : /egasp/src/egasp/__main__.py
 Description  : 
@@ -32,14 +32,14 @@ from rich.prompt import Prompt
 from rich.console import Console
 from rich_argparse import RichHelpFormatter
 
-from egasp.egasp_core import EG_ASP_Core
+from egasp.core import EGASP
 from egasp.logger_config import setup_logger
 from egasp.check_version import UpdateChecker
 # 版本信息
 from egasp.version import script_name, __version__
 
 logger = setup_logger(False)
-eg = EG_ASP_Core()  # 初始化核心计算类实例
+eg = EGASP()  # 初始化核心计算类实例
 
 def print_table(result: dict):
     console = Console(width=59)
@@ -83,7 +83,7 @@ def cli_main():
     print(f"查询类型: {args.query_type}")
     print(f"查询浓度: {args.query_value} %")
     print(f"查询温度: {args.query_temp} °C")
-    mass, volume, freezing, boiling, rho, cp, k, mu = eg.get_egasp(args.query_temp, args.query_type, args.query_value)
+    mass, volume, freezing, boiling, rho, cp, k, mu = eg.props(args.query_temp, args.query_type, args.query_value)
     print('-----+--------------------------------------------+-----\n')
 
     result = {"mass": mass, "volume": volume, "freezing": freezing, "boiling": boiling, "rho": rho, "cp": cp, "k": k, "mu": mu}
@@ -118,7 +118,7 @@ def input_main():
                 console.print(f"[red]输入格式错误: {str(e)}，请重新输入[/red]")
 
             # 获取计算结果（复用原有核心逻辑）
-            mass, volume, freezing, boiling, rho, cp, k, mu = eg.get_egasp(query_temp, query_type, query_value)
+            mass, volume, freezing, boiling, rho, cp, k, mu = eg.props(query_temp, query_type, query_value)
 
             # 打印结果表格
             print('-----+--------------------------------------------+-----\n')
@@ -133,7 +133,7 @@ def input_main():
 
             break
 
-    except Exception as e:
+    except Exception:
         logger.exception("程序发生异常:")
         console.input("[red]程序运行出错，按任意键退出...[/red]")
 
@@ -152,7 +152,7 @@ def excel_entry():
     args = parser.parse_args()
 
 
-    mass, volume, freezing, boiling, rho, cp, k, mu = eg.get_egasp(args.temp, args.type, args.value)
+    mass, volume, freezing, boiling, rho, cp, k, mu = eg.props(args.temp, args.type, args.value)
     props_map = {
         'mass': mass,
         'volume': volume,
