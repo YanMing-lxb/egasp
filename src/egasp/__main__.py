@@ -36,7 +36,7 @@ from egasp.core import EGASP
 from egasp.logger_config import setup_logger
 from egasp.check_version import UpdateChecker
 # 版本信息
-from egasp.version import script_name, __version__
+from egasp.version import __project_name__, __version__
 
 logger = setup_logger(False)
 eg = EGASP()  # 初始化核心计算类实例
@@ -77,7 +77,7 @@ def cli_main():
     args = parser.parse_args()
 
     console = Console(width=59)
-    console.print(f"\n[bold green]{script_name}[/bold green]", justify="center")
+    console.print(f"\n[bold green]{__project_name__}[/bold green]", justify="center")
     print('-----+--------------------------------------------+-----')
     # 打印校验后的查询参数
     print(f"查询类型: {args.query_type}")
@@ -99,7 +99,7 @@ def input_main():
     try:
         # 初始化控制台输出
         console = Console(width=59)
-        console.print(f"\n[bold green]{script_name}[/bold green]", justify="center")
+        console.print(f"\n[bold green]{__project_name__}[/bold green]", justify="center")
         print('-----+--------------------------------------------+-----')
 
         # 交互式输入参数

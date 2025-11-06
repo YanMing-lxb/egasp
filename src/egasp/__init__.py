@@ -11,7 +11,7 @@ eg = EGASP()
 
 # 将指定方法暴露为模块级别的函数
 prop = eg.prop
-props = eg.props
+props = eg.props  # 直接暴露 props 函数
 
 if sys.version_info[0] == 3:
     from .__main__ import main  # 显式导出 main() 供 CLI 入口使用

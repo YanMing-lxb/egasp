@@ -25,5 +25,7 @@ Description  :
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
 
-script_name = 'egasp'
+__project_name__ = 'egasp'
 __version__ = '0.1.4'
+__author__ = '焱铭'
+__url__ = "https://github.com/YanMing-lxb"

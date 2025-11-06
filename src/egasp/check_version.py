@@ -10,11 +10,11 @@ from datetime import timedelta
 from platformdirs import user_cache_dir
 
 from egasp.language import set_language
-from egasp.version import script_name, __version__
+from egasp.version import __project_name__, __version__
 
 _ = set_language('check_version')
 
-API_URL = f"https://api.github.com/repos/YanMing-lxb/{script_name}/releases/latest"
+API_URL = f"https://api.github.com/repos/YanMing-lxb/{__project_name__}/releases/latest"
 
 class UpdateChecker():
 
@@ -41,8 +41,8 @@ class UpdateChecker():
         self.cache_time = cache_time * 3600  # 将缓存时间转换为秒并存储
         self.time_out = time_out  # 存储超时时间
 
-        cache_path = Path(user_cache_dir(script_name, ensure_exists=True))
-        self.cache_file = cache_path / f"{script_name}_version_cache.toml"
+        cache_path = Path(user_cache_dir(__project_name__, ensure_exists=True))
+        self.cache_file = cache_path / f"{__project_name__}_version_cache.toml"
 
     # --------------------------------------------------------------------------------
     # 定义 缓存文件读取函数
@@ -108,13 +108,13 @@ class UpdateChecker():
     # --------------------------------------------------------------------------------
     # 定义 网络获取版本信息函数
     # --------------------------------------------------------------------------------
-    def _get_latest_version(self, script_name, api_url):  # TODO 将该函数放到线程中执行,获取线程信息,保存,并且在下次运行时检查这个显示是否已经执行结束,如果结束则不再执行,否则执行
+    def _get_latest_version(self, __project_name__, api_url):  # TODO 将该函数放到线程中执行,获取线程信息,保存,并且在下次运行时检查这个显示是否已经执行结束,如果结束则不再执行,否则执行
 
         start_time = time.time()
         
         try:
             headers = {
-                'User-Agent': f'{script_name} Update Checker',  # GitHub要求明确User-Agent
+                'User-Agent': f'{__project_name__} Update Checker',  # GitHub要求明确User-Agent
                 'Accept': 'application/vnd.github.v3+json'
             }
             req = urllib.request.Request(api_url, headers=headers)
@@ -171,7 +171,7 @@ class UpdateChecker():
         if latest_version:
             latest_version = version.parse(latest_version)  # 将字符串转换为版本对象
         else:
-            latest_version = self._get_latest_version(script_name, API_URL)
+            latest_version = self._get_latest_version(__project_name__, API_URL)
             if latest_version:
                 self._update_version_cache(str(latest_version))
             else:
@@ -182,6 +182,6 @@ class UpdateChecker():
 
         if current_version < latest_version:
             print(_("有新版本可用: ") + f"[bold green]{latest_version}[/bold green] " + _("当前版本: ") + f"[bold red]{current_version}[/bold red]")
-            print(_("python库请运行 [bold green]'pip install --upgrade %(args)s'[/bold green] 进行更新，独立可执行文件则请去 https://github.com/YanMing-lxb/egasp/releases/latest 下载") % {'args': script_name})
+            print(_("python库请运行 [bold green]'pip install --upgrade %(args)s'[/bold green] 进行更新，独立可执行文件则请去 https://github.com/YanMing-lxb/egasp/releases/latest 下载") % {'args': __project_name__})
         else:
             print(_("当前版本: ") + f"[bold green]{current_version}[/bold green]")
