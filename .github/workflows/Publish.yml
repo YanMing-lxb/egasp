@@ -60,12 +60,15 @@ jobs:
         $env:PYTHONIOENCODING = "utf-8"  # 使用PowerShell环境变量语法
         uv run ${{ github.workspace }}\tools\pack.py pack
       shell: pwsh
+    
+    - name: List dist directory contents  # 列出dist目录内容的调试步骤
+      run: ls -R dist/
 
     - name: Store the distribution packages
       uses: actions/upload-artifact@v4
       with:
         name: windows-python-package-distributions
-        path: dist\egasp.exe
+        path: dist/egasp.exe
 
   publish-to-pypi:
     name: Publish 🐍 egasp 📦 to PyPI  # 定义发布到PyPI作业的名称
@@ -117,7 +120,7 @@ jobs:
       with:
         name: windows-python-package-distributions
         path: dist/
-        
+
     - name: Verify file structure after download
       run: ls -R dist/
     
