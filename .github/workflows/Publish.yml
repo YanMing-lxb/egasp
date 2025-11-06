@@ -85,7 +85,7 @@ jobs:
       with:
         name: python-package-distributions  # 指定要下载的artifact名称
     - name: List dist directory contents  # 列出dist目录内容的调试步骤
-      run: ls -R
+      run: ls -R dist/
 
     - name: Publish 📦 to PyPI  # 发布分发包到PyPI的步骤
       uses: pypa/gh-action-pypi-publish@release/v1  # 使用pypa/gh-action-pypi-publish动作来发布包
@@ -106,19 +106,20 @@ jobs:
     - name: Download all the 📦 dists  # 下载所有分发包的步骤
       uses: actions/download-artifact@v4  # 使用actions/download-artifact动作来下载构建好的包
       with:
-        name: windows-python-package-distributions  # 指定要下载的artifact名称
+        name: python-package-distributions  # 指定要下载的artifact名称
 
     - name: Display structure of downloaded files
-      run: ls -R
+      run: ls -R dist/
     
     # 新增步骤：下载 Windows 构建产物
     - name: Download Windows Python package distributions
       uses: actions/download-artifact@v4
       with:
         name: windows-python-package-distributions
+        path: dist/
 
     - name: Verify file structure after download
-      run: ls -R
+      run: ls -R dist/
     
     - name: Move xlsx and xlam files from src to dist
       run: |
