@@ -20,11 +20,11 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "packaging" },
-    { name = "platformdirs" },
-    { name = "rich" },
-    { name = "rich-argparse" },
-    { name = "toml" },
+    { name = "packaging", specifier = ">=25.0" },
+    { name = "platformdirs", specifier = ">=4.3.8" },
+    { name = "rich", specifier = ">=14.0.0" },
+    { name = "rich-argparse", specifier = ">=1.7.1" },
+    { name = "toml", specifier = ">=0.10.2" },
 ]
 
 [[package]]
