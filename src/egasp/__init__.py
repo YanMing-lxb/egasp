@@ -9,8 +9,9 @@ from .core import EGASP
 # 实例化核心类
 eg = EGASP()
 
-# 将 props 方法暴露为模块级别的函数
-props = eg.props  # 修改点：直接暴露 props 函数
+# 将指定方法暴露为模块级别的函数
+prop = eg.prop
+props = eg.props
 
 if sys.version_info[0] == 3:
     from .__main__ import main  # 显式导出 main() 供 CLI 入口使用
