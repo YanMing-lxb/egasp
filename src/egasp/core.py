@@ -133,7 +133,6 @@ class EGASP:
         temp_step = 5 # 温度步长，用于生成温度节点
         conc_step = 0.1 # 浓度步长，用于生成浓度节点
 
-
         if egp_key not in ['rho', 'cp', 'k', 'mu']:
             self._error_exit(f"无效物性参数 {egp_key}，可选值: rho/cp/k/mu")
 
@@ -166,17 +165,26 @@ class EGASP:
         t_lower, t_upper = temp_nodes[t_lower_idx], temp_nodes[t_upper_idx]
         c_lower, c_upper = conc_nodes[c_lower_idx], conc_nodes[c_upper_idx]
 
+        # 处理不同的插值情况
         if t_lower == t_upper and c_lower == c_upper:
-            return v11
-        if t_lower == t_upper:
-            return self._interpolate_linear(c_lower, v11, c_upper, v12, conc)
-        if c_lower == c_upper:
-            return self._interpolate_linear(t_lower, v11, t_upper, v21, temp)
+            # 精确匹配节点的情况，直接返回节点值
+            result = v11
+        elif t_lower == t_upper:
+            # 温度精确匹配，只需在浓度方向插值
+            result = self._interpolate_linear(c_lower, v11, c_upper, v12, conc)
+        elif c_lower == c_upper:
+            # 浓度精确匹配，只需在温度方向插值
+            result = self._interpolate_linear(t_lower, v11, t_upper, v21, temp)
+        else:
+            # 双线性插值的一般情况
+            # 先在两个温度层分别进行浓度方向插值
+            v1 = self._interpolate_linear(c_lower, v11, c_upper, v12, conc)
+            v2 = self._interpolate_linear(c_lower, v21, c_upper, v22, conc)
+            # 再在温度方向进行插值
+            result = self._interpolate_linear(t_lower, v1, t_upper, v2, temp)
 
-        v1 = self._interpolate_linear(c_lower, v11, c_upper, v12, conc)
-        v2 = self._interpolate_linear(c_lower, v21, c_upper, v22, conc)
-
-        return self._interpolate_linear(t_lower, v1, t_upper, v2, temp)
+        # 对于动力粘度，需要将单位从 mPa·s 转换为 Pa·s
+        return result / 1000 if egp_key == "mu" else result
 
     def fb_props(self, query: float, query_type: str = 'volume') -> Tuple[float, float, float, float]:
         """根据浓度查询冰点和沸点相关物性参数
@@ -306,7 +314,7 @@ class EGASP:
         # 获取导热率 (k), 单位为 W/m·K
         k = self.prop(temp=query_temp, conc=volume, egp_key='k')
 
-        # 获取动力粘度 (mu), 单位为 Pa·s, 并将结果从 mPa·s 转换为 Pa·s
-        mu = self.prop(temp=query_temp, conc=volume, egp_key='mu') / 1000
+        # 获取动力粘度 (mu), 单位为 Pa·s
+        mu = self.prop(temp=query_temp, conc=volume, egp_key='mu')
 
         return mass, volume, freezing, boiling, rho, cp, k, mu
