@@ -55,8 +55,8 @@ def print_table(result: dict):
     table.add_column("数值", justify="left", style="green", no_wrap=True)
 
     # 添加行
-    table.add_row("质量浓度", "%", f"{result['mass']:.2f}", "密度", "kg/m³", f"{result['rho']:.2f}")
-    table.add_row("体积浓度", "%", f"{result['volume']:.2f}", "比热容", "J/kg·K", f"{result['cp']:.2f}")
+    table.add_row("质量浓度", " %", f"{result['mass']*100:.2f}", "密度", "kg/m³", f"{result['rho']:.2f}")
+    table.add_row("体积浓度", " %", f"{result['volume']*100:.2f}", "比热容", "J/kg·K", f"{result['cp']:.2f}")
     table.add_row("冰点", "°C", f"{result['freezing']:.2f}", "导热率", "W/m·K", f"{result['k']:.4f}")
     table.add_row("沸点", "°C", f"{result['boiling']:.2f}", "粘度", "Pa·s", f"{result['mu']:.5f}")
 
@@ -71,7 +71,7 @@ def cli_main():
         formatter_class=RichHelpFormatter,
     )
     parser.add_argument("-qt", "--query_type", type=str, default="volume", help="浓度类型 (volume/mass or v/m), 默认值为 volume (体积浓度)")
-    parser.add_argument("-qv", "--query_value", type=float, default=50, help="查询浓度 %% (范围: 10 ~ 90), 默认值为 50")  # 修改此处
+    parser.add_argument("-qv", "--query_value", type=float, default=0.5, help="查询浓度 (范围: 0.1 ~ 0.9), 默认值为 0.5")  # 修改此处
     parser.add_argument("query_temp", type=float, help="查询温度 °C (范围: -35 ~ 125)")  # 如果温度单位有%也需要转义
 
     args = parser.parse_args()
@@ -81,7 +81,7 @@ def cli_main():
     print('-----+--------------------------------------------+-----')
     # 打印校验后的查询参数
     print(f"查询类型: {args.query_type}")
-    print(f"查询浓度: {args.query_value} %")
+    print(f"查询浓度: {args.query_value}")
     print(f"查询温度: {args.query_temp} °C")
     mass, volume, freezing, boiling, rho, cp, k, mu = eg.props(args.query_temp, args.query_type, args.query_value)
     print('-----+--------------------------------------------+-----\n')
@@ -109,8 +109,8 @@ def input_main():
                 query_type = Prompt.ask("[bold]1. 浓度类型 [dim](volume/mass)[/]", default="volume")
                 console.print(f"[green]✓ 已选择类型: {query_type}[/]")
 
-                query_value = float(Prompt.ask("[bold]2. 输入浓度 [dim](10-90%)[/]", default="50"))
-                console.print(f"[green]✓ 浓度已确认: {query_value}%[/]")
+                query_value = float(Prompt.ask("[bold]2. 输入浓度 [dim](0.1-0.9)[/]", default="0.5"))
+                console.print(f"[green]✓ 浓度已确认: {query_value}[/]")
 
                 query_temp = float(Prompt.ask("[bold]3. 输入温度 [dim](-35-125°C)[/]"))
                 console.print(f"[green]✓ 温度已确认: {query_temp}°C[/]\n")

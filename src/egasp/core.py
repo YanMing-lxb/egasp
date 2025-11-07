@@ -114,7 +114,7 @@ class EGASP:
         temp : float
             温度值，单位为摄氏度(°C)，应在[temp_range[0], temp_range[1]]范围内
         conc : float
-            体积浓度值，单位为百分比(%)，应在[conc_range[0], conc_range[1]]范围内
+            体积浓度值，单位为小数(0.1-0.9)，应在[0.1, 0.9]范围内
         egp_key : str
             物性参数标识符，可选值: 'rho'(密度)、'cp'(比热容)、'k'(导热系数)、'mu'(动力粘度)
 
@@ -129,9 +129,9 @@ class EGASP:
             当参数不合法或数据缺失时退出程序
         """        
         temp_range = (-35, 125) # 温度范围
-        conc_range = (10.0, 90.0) # 浓度范围
+        conc_range = (0.1, 0.9) # 浓度范围
         temp_step = 5 # 温度步长，用于生成温度节点
-        conc_step = 10.0 # 浓度步长，用于生成浓度节点
+        conc_step = 0.1 # 浓度步长，用于生成浓度节点
 
 
         if egp_key not in ['rho', 'cp', 'k', 'mu']:
@@ -160,7 +160,7 @@ class EGASP:
 
         # 检查数据有效性
         if any(v is None for v in [v11, v12, v21, v22]):
-            self._error_exit(f"温度 {temp}°C 浓度 {conc}% 附近存在数据缺失 (数据库本身缺失)")
+            self._error_exit(f"温度 {temp}°C 浓度 {conc} 附近存在数据缺失 (数据库本身缺失)")
 
         # 执行插值计算
         t_lower, t_upper = temp_nodes[t_lower_idx], temp_nodes[t_upper_idx]
@@ -178,7 +178,6 @@ class EGASP:
 
         return self._interpolate_linear(t_lower, v1, t_upper, v2, temp)
 
-
     def fb_props(self, query: float, query_type: str = 'volume') -> Tuple[float, float, float, float]:
         """根据浓度查询冰点和沸点相关物性参数
         
@@ -188,7 +187,7 @@ class EGASP:
         Parameters
         ----------
         query : float
-            查询浓度值，单位为百分比(%)
+            查询浓度值，为小数(0.1-0.9)
         query_type : str, optional
             查询浓度类型，'volume'表示体积浓度，'mass'表示质量浓度，默认为'volume'
 
@@ -196,8 +195,8 @@ class EGASP:
         -------
         Tuple[float, float, float, float]
             四元组 (mass, volume, freezing, boiling)：
-            - mass: 质量浓度 (%)
-            - volume: 体积浓度 (%)
+            - mass: 质量浓度 (小数形式)
+            - volume: 体积浓度 (小数形式)
             - freezing: 冰点温度 (°C)
             - boiling: 沸点温度 (°C)
 
@@ -218,15 +217,15 @@ class EGASP:
 
         # 查找相邻数据点
         try:
-            idx = bisect.bisect_left(sorted_values, query)
+            idx = bisect.bisect_left(sorted_values, query*100)  # 转换为百分比形式进行查找
             if idx == 0 or idx == len(sorted_data):
-                self._error_exit(f"浓度 {query}% 超出数据范围 [{sorted_values[0]}, {sorted_values[-1]}]")
+                self._error_exit(f"浓度 {query} 超出数据范围 [{sorted_values[0]/100}, {sorted_values[-1]/100}]")
 
             prev, curr = sorted_data[idx - 1], sorted_data[idx]
             p_val, c_val = prev[sort_key], curr[sort_key]
 
-            if not (p_val <= query <= c_val):
-                self._error_exit(f"浓度 {query}% 不在相邻数据点之间 [{p_val}, {c_val}]")
+            if not (p_val <= query*100 <= c_val):
+                self._error_exit(f"浓度 {query} 不在相邻数据点之间 [{p_val/100}, {c_val/100}]")
         except Exception as e:
             self._error_exit(f"数据查询失败: {str(e)}")
 
@@ -236,25 +235,23 @@ class EGASP:
 
         # 检查数据完整性
         if any(v is None for v in [m1, v1, f1, b1, m2, v2, f2, b2]):
-            self._error_exit(f"浓度 {query}% 附近存在数据缺失 (数据库本身缺失)")
+            self._error_exit(f"浓度 {query} 附近存在数据缺失 (数据库本身缺失)")
 
         # 执行插值
         if query_type == 'volume':
-            mass = self._interpolate_linear(v1, m1, v2, m2, query)
+            mass = self._interpolate_linear(v1, m1, v2, m2, query*100) / 100  # 转换回小数形式
             volume = query
-            freezing = self._interpolate_linear(v1, f1, v2, f2, query)
-            boiling = self._interpolate_linear(v1, b1, v2, b2, query)
+            freezing = self._interpolate_linear(v1, f1, v2, f2, query*100)
+            boiling = self._interpolate_linear(v1, b1, v2, b2, query*100)
         else:
-            volume = self._interpolate_linear(m1, v1, m2, v2, query)
+            volume = self._interpolate_linear(m1, v1, m2, v2, query*100) / 100  # 转换回小数形式
             mass = query
-            freezing = self._interpolate_linear(m1, f1, m2, f2, query)
-            boiling = self._interpolate_linear(m1, b1, m2, b2, query)
+            freezing = self._interpolate_linear(m1, f1, m2, f2, query*100)
+            boiling = self._interpolate_linear(m1, b1, m2, b2, query*100)
 
         return (mass, volume, freezing, boiling)
 
-
-
-    def props(self, query_temp: float, query_type: str = 'volume', query_value: float = 50) -> tuple:
+    def props(self, query_temp: float, query_type: str = 'volume', query_value: float = 0.5) -> tuple:
         """根据输入的查询类型、浓度和温度，计算乙二醇水溶液的相关属性。
 
         此方法是EGASP的核心接口，整合了浓度转换、温度物性计算等功能，
@@ -267,14 +264,14 @@ class EGASP:
         query_type : str, optional
             查询浓度的类型，可选值为"volume"或"mass"，分别表示体积浓度和质量浓度，默认值为"volume"
         query_value : float, optional
-            查询浓度值，单位为百分比(%)，范围为10%到90%，默认值为50
+            查询浓度值，单位为小数，范围 [0.1, 0.9]，默认值为0.5
 
         Returns
         -------
         tuple
             返回一个包含以下属性的元组：
-            - mass: 质量浓度 (%)
-            - volume: 体积浓度 (%)
+            - mass: 质量浓度 (小数形式)
+            - volume: 体积浓度 (小数形式)
             - freezing: 冰点 (°C)
             - boiling: 沸点 (°C)
             - rho: 密度 (kg/m³)
@@ -291,8 +288,8 @@ class EGASP:
         # 校验查询类型, 确保其为合法值 ("volume" 或 "mass")
         query_type = self.validate.type_value(query_type)
 
-        # 校验查询浓度, 确保其在 10% 到 90% 的范围内
-        query_value = self.validate.input_value(query_value, min_val=10, max_val=90)
+        # 校验查询浓度, 确保其在 0.1 到 0.9 的范围内
+        query_value = self.validate.input_value(query_value, min_val=0.1, max_val=0.9)
 
         # 校验查询温度, 确保其在 -35°C 到 125°C 的范围内
         query_temp = self.validate.input_value(query_temp, min_val=-35, max_val=125)

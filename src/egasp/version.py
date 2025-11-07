@@ -26,6 +26,6 @@ Description  :
 #!/usr/bin/env python
 
 __project_name__ = 'egasp'
-__version__ = '0.1.5'
+__version__ = '0.1.6'
 __author__ = '焱铭'
 __url__ = "https://github.com/YanMing-lxb"
