@@ -11,6 +11,40 @@ class EGASP:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.validate = Validate()
+    
+    @staticmethod
+    def concentration_type_to_chinese(concentration_type: str) -> str:
+        """将浓度类型名称符号 (如 volume/v 和 mass/m) 转换成对应的中文名称
+
+        Parameters
+        ----------
+        concentration_type : str
+            浓度类型符号，支持 'volume' 表示体积浓度，'mass' 表示质量浓度
+
+        Returns
+        -------
+        str
+            对应的中文名称，'volume' 返回 "体积浓度"，'mass' 返回 "质量浓度"
+
+        Raises
+        ------
+        ValueError
+            当输入的浓度类型符号不被支持时抛出异常
+        """
+        type_mapping = {
+            'volume': '体积浓度',
+            'mass': '质量浓度',
+            'rho': '密度',
+            'cp': '比热容',
+            'k': '导热系数',
+            'mu': '动力粘度'
+        }
+        
+        if concentration_type not in type_mapping:
+            raise ValueError(f"不支持的浓度类型: {concentration_type}，支持的类型有: volume/v, mass/m")
+            
+        return type_mapping[concentration_type]
+
 
     @staticmethod
     def _interpolate_linear(x1: float, y1: float, x2: float, y2: float, x: float) -> float:
@@ -47,7 +81,7 @@ class EGASP:
         except ZeroDivisionError:
             raise RuntimeError(f"插值节点间距为零 x1={x1}, x2={x2}")
 
-    def _error_exit(self, msg: str) -> None:
+    def _error_exit(self, msg: str = None) -> None:
         """记录错误信息并终止程序执行
         
         将错误消息记录到日志中，并以错误状态退出程序。
@@ -62,7 +96,8 @@ class EGASP:
         None
             此函数不会返回，会直接终止程序执行
         """
-        self.logger.error(msg)
+        if msg:
+            self.logger.error(msg)
         sys.exit()
 
     def _find_nearest_nodes(self, nodes: list, value: float, name: str) -> Tuple[int, int]:
@@ -150,17 +185,27 @@ class EGASP:
 
         # 获取数据矩阵
         data_matrix = EGP.get(egp_key)
-
+        
         # 提取四个角点数据
         v11 = data_matrix[t_lower_idx][c_lower_idx]
         v12 = data_matrix[t_lower_idx][c_upper_idx]
         v21 = data_matrix[t_upper_idx][c_lower_idx]
         v22 = data_matrix[t_upper_idx][c_upper_idx]
 
-        # 检查数据有效性
-        if any(v is None for v in [v11, v12, v21, v22]):
-            self._error_exit(f"温度 {temp}°C 浓度 {conc} 附近存在数据缺失 (数据库本身缺失)")
+        # # 检查数据有效性
+        # if any(v is None for v in [v11, v12, v21, v22]):
+        #     self._error_exit(f"温度 {temp}°C 浓度 {conc} 附近存在数据缺失 (数据库本身缺失11)")
 
+        if None in (v11, v21):
+            self.logger.warning(f"数据库在体积浓度 {conc_nodes[c_lower_idx]} 下，温度 {temp_nodes[t_lower_idx]} ~ {temp_nodes[t_upper_idx]} 的范围内[red]{self.concentration_type_to_chinese(egp_key)}[/red]数据缺失")
+        if None in (v12, v22):
+            self.logger.warning(f"数据库在体积浓度 {conc_nodes[c_upper_idx]} 下，温度 {temp_nodes[t_lower_idx]} ~ {temp_nodes[t_upper_idx]} 的范围内[red]{self.concentration_type_to_chinese(egp_key)}[/red]数据缺失")
+
+        # 检查数据有效性
+        if None in (v11, v21, v12, v22):
+            # 数据为None时返回None而不是退出程序
+            return None
+        
         # 执行插值计算
         t_lower, t_upper = temp_nodes[t_lower_idx], temp_nodes[t_upper_idx]
         c_lower, c_upper = conc_nodes[c_lower_idx], conc_nodes[c_upper_idx]
@@ -185,6 +230,7 @@ class EGASP:
 
         # 对于动力粘度，需要将单位从 mPa·s 转换为 Pa·s
         return result / 1000 if egp_key == "mu" else result
+
 
     def fb_props(self, query: float, query_type: str = 'volume') -> Tuple[float, float, float, float]:
         """根据浓度查询冰点和沸点相关物性参数
@@ -225,39 +271,47 @@ class EGASP:
 
         # 查找相邻数据点
         try:
-            idx = bisect.bisect_left(sorted_values, query*100)  # 转换为百分比形式进行查找
+            idx = bisect.bisect_left(sorted_values, query)
             if idx == 0 or idx == len(sorted_data):
-                self._error_exit(f"浓度 {query} 超出数据范围 [{sorted_values[0]/100}, {sorted_values[-1]/100}]")
+                self._error_exit(f"浓度 {query} 超出数据范围 [{sorted_values[0]}, {sorted_values[-1]}]")
 
             prev, curr = sorted_data[idx - 1], sorted_data[idx]
             p_val, c_val = prev[sort_key], curr[sort_key]
 
-            if not (p_val <= query*100 <= c_val):
-                self._error_exit(f"浓度 {query} 不在相邻数据点之间 [{p_val/100}, {c_val/100}]")
+            if not (p_val <= query <= c_val):
+                self._error_exit(f"浓度 {query} 不在相邻数据点之间 [{p_val}, {c_val}]")
         except Exception as e:
             self._error_exit(f"数据查询失败: {str(e)}")
 
         # 解包数据
         m1, v1, f1, b1 = prev
         m2, v2, f2, b2 = curr
+        
+        # 定义需要检查的数据字段
+        field_names = ["质量浓度", "体积浓度", "冰点", "沸点"]
+        
+        # 检查数据完整性 - 逐个检查每个数据点
+        for i, (prev_data, curr_data) in enumerate(zip(prev, curr)):
+            if None in (prev_data, curr_data):
+                if query_type == 'volume':
+                    self.logger.warning(f"数据库在{self.concentration_type_to_chinese(query_type)} {v1:.2f} ~ {v2:.2f} 的范围内{field_names[i]}数据缺失")
+                else:
+                    self.logger.warning(f"数据库在{self.concentration_type_to_chinese(query_type)} {m1:.2f} ~ {m2:.2f} 的范围内{field_names[i]}数据缺失")
 
-        # 检查数据完整性
-        if any(v is None for v in [m1, v1, f1, b1, m2, v2, f2, b2]):
-            self._error_exit(f"浓度 {query} 附近存在数据缺失 (数据库本身缺失)")
-
-        # 执行插值
+        # 如果某个数据缺失则不对该数据进行插值，只返回None
         if query_type == 'volume':
-            mass = self._interpolate_linear(v1, m1, v2, m2, query*100) / 100  # 转换回小数形式
+            mass = self._interpolate_linear(v1, m1, v2, m2, query) if None not in [v1, m1, v2, m2] else None
             volume = query
-            freezing = self._interpolate_linear(v1, f1, v2, f2, query*100)
-            boiling = self._interpolate_linear(v1, b1, v2, b2, query*100)
-        else:
-            volume = self._interpolate_linear(m1, v1, m2, v2, query*100) / 100  # 转换回小数形式
+            freezing = self._interpolate_linear(v1, f1, v2, f2, query) if None not in [v1, f1, v2, f2] else None
+            boiling = self._interpolate_linear(v1, b1, v2, b2, query) if None not in [v1, b1, v2, b2] else None
+        else: # query_type == 'mass'
+            volume = self._interpolate_linear(m1, v1, m2, v2, query) if None not in [m1, v1, m2, v2] else None
             mass = query
-            freezing = self._interpolate_linear(m1, f1, m2, f2, query*100)
-            boiling = self._interpolate_linear(m1, b1, m2, b2, query*100)
+            freezing = self._interpolate_linear(m1, f1, m2, f2, query) if None not in [m1, f1, m2, f2] else None
+            boiling = self._interpolate_linear(m1, b1, m2, b2, query) if None not in [m1, b1, m2, b2] else None
 
         return (mass, volume, freezing, boiling)
+
 
     def props(self, query_temp: float, query_type: str = 'volume', query_value: float = 0.5) -> tuple:
         """根据输入的查询类型、浓度和温度，计算乙二醇水溶液的相关属性。

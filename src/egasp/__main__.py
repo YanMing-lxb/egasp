@@ -16,7 +16,7 @@
  -----------------------------------------------------------------------
 Author       : 焱铭
 Date         : 2025-04-22 10:43:55 +0800
-LastEditTime : 2025-11-06 20:15:51 +0800
+LastEditTime : 2025-11-08 11:05:28 +0800
 Github       : https://github.com/YanMing-lxb/
 FilePath     : /egasp/src/egasp/__main__.py
 Description  : 
@@ -54,11 +54,18 @@ def print_table(result: dict):
     table.add_column("单位", justify="left", style="magenta", no_wrap=True)
     table.add_column("数值", justify="left", style="green", no_wrap=True)
 
+    # ✨ 添加行，处理None值的情况
+    def format_value(value, format_str):
+        if value is None:
+            return "N/A"
+        else:
+            return f"{value:{format_str}}"
+    
     # 添加行
-    table.add_row("质量浓度", " %", f"{result['mass']*100:.2f}", "密度", "kg/m³", f"{result['rho']:.2f}")
-    table.add_row("体积浓度", " %", f"{result['volume']*100:.2f}", "比热容", "J/kg·K", f"{result['cp']:.2f}")
-    table.add_row("冰点", "°C", f"{result['freezing']:.2f}", "导热率", "W/m·K", f"{result['k']:.4f}")
-    table.add_row("沸点", "°C", f"{result['boiling']:.2f}", "粘度", "Pa·s", f"{result['mu']:.5f}")
+    table.add_row("质量浓度", " %", format_value(result['mass']*100, ".2f"), "密度", "kg/m³", format_value(result['rho'], ".2f"))
+    table.add_row("体积浓度", " %", format_value(result['volume']*100, ".2f"), "比热容", "J/kg·K", format_value(result['cp'], ".2f"))
+    table.add_row("冰点", "°C", format_value(result['freezing'], ".2f"), "导热率", "W/m·K", format_value(result['k'], ".4f"))
+    table.add_row("沸点", "°C", format_value(result['boiling'], ".2f"), "粘度", "Pa·s", format_value(result['mu'], ".5f"))
 
     # 打印表格
     console.print(table)
