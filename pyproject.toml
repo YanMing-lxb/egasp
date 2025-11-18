@@ -16,6 +16,7 @@ dependencies = [
     "toml>=0.10.2",
     "packaging>=25.0",
     "platformdirs>=4.3.8",
+    "numpy>=2.0.2",
 ]
 
 readme = "README.md"
