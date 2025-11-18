@@ -1,7 +1,8 @@
 import logging
 import sys
 import bisect
-from typing import Tuple
+from typing import Tuple, Union
+import numpy as np
 
 from egasp.data.egasp_data import EGP
 from egasp.validate import Validate
@@ -138,7 +139,7 @@ class EGASP:
         except IndexError as e:
             self._error_exit(f"节点索引错误: {str(e)}")
 
-    def prop(self, temp: float, conc: float, egp_key: str) -> float:
+    def prop(self, temp: Union[float, np.ndarray], conc: float, egp_key: str) -> Union[float, np.ndarray]:
         """根据温度和浓度计算指定物性参数
         
         使用双线性插值法计算乙二醇水溶液在给定温度和浓度下的物性参数。
@@ -146,7 +147,7 @@ class EGASP:
 
         Parameters
         ----------
-        temp : float
+        temp : float or numpy.ndarray
             温度值，单位为摄氏度(°C)，应在[temp_range[0], temp_range[1]]范围内
         conc : float
             体积浓度值，单位为小数(0.1-0.9)，应在[0.1, 0.9]范围内
@@ -155,7 +156,7 @@ class EGASP:
 
         Returns
         -------
-        float
+        float or numpy.ndarray
             指定物性参数的计算结果
             
         Raises
@@ -171,6 +172,31 @@ class EGASP:
         if egp_key not in ['rho', 'cp', 'k', 'mu']:
             self._error_exit(f"无效物性参数 {egp_key}，可选值: rho/cp/k/mu")
 
+        # 处理numpy数组输入
+        temp_is_array = isinstance(temp, np.ndarray)
+        
+        if temp_is_array:
+            # 初始化结果数组
+            result_shape = temp.shape
+            result = np.empty(result_shape, dtype=float)
+            
+            # 对数组中的每个元素进行计算
+            for index, temp_val in np.ndenumerate(temp):
+                result[index] = self._prop_single(temp_val, conc, egp_key, temp_range, conc_range, temp_step, conc_step)
+                
+            # 对于动力粘度，需要将单位从 mPa·s 转换为 Pa·s
+            return result / 1000 if egp_key == "mu" else result
+        else:
+            # 处理单个数值输入
+            result = self._prop_single(temp, conc, egp_key, temp_range, conc_range, temp_step, conc_step)
+            # 对于动力粘度，需要将单位从 mPa·s 转换为 Pa·s
+            return result / 1000 if egp_key == "mu" else result
+
+    def _prop_single(self, temp: float, conc: float, egp_key: str, temp_range: tuple, conc_range: tuple, temp_step: int, conc_step: int) -> float:
+        """计算单个温度和浓度值的物性参数
+        
+        这是prop方法的核心计算逻辑，用于处理单个数值输入。
+        """
         # 生成数据节点
         try:
             temp_nodes = list(range(temp_range[0], temp_range[1] + 1, temp_step))
@@ -181,7 +207,6 @@ class EGASP:
         # 查找节点索引
         t_lower_idx, t_upper_idx = self._find_nearest_nodes(temp_nodes, temp, "温度")
         c_lower_idx, c_upper_idx = self._find_nearest_nodes(conc_nodes, conc, "浓度")
-
 
         # 获取数据矩阵
         data_matrix = EGP.get(egp_key)
@@ -228,9 +253,7 @@ class EGASP:
             # 再在温度方向进行插值
             result = self._interpolate_linear(t_lower, v1, t_upper, v2, temp)
 
-        # 对于动力粘度，需要将单位从 mPa·s 转换为 Pa·s
-        return result / 1000 if egp_key == "mu" else result
-
+        return result
 
     def fb_props(self, query: float, query_type: str = 'volume') -> Tuple[float, float, float, float]:
         """根据浓度查询冰点和沸点相关物性参数
