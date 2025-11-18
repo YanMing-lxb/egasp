@@ -16,10 +16,10 @@
  -----------------------------------------------------------------------
 Author       : 焱铭
 Date         : 2025-11-18 09:51:52 +0800
-LastEditTime : 2025-11-18 09:52:20 +0800
+LastEditTime : 2025-11-18 10:06:29 +0800
 Github       : https://github.com/YanMing-lxb/
 FilePath     : /egasp/test.py
-Description  : 
+Description  : 添加了运行时间统计功能
  -----------------------------------------------------------------------
 '''
 
@@ -27,18 +27,25 @@ Description  :
 # -*- coding: utf-8 -*-
 
 """
-测试 EGASP 类的 prop 方法
+测试 EGASP 类的 prop 方法，添加了运行时间统计功能
 """
 
 import numpy as np
+import time  # 导入时间模块
 from src.egasp.core import EGASP
 
 def test_prop():
     # 创建 EGASP 实例
     egasp = EGASP()
     
+    # 记录整体开始时间
+    total_start_time = time.time()
+    
     # 测试用例1: 单个温度值和浓度值
+    print("\n" + "="*50)
     print("测试用例1: 单个温度值和浓度值")
+    start_time = time.time()  # 记录开始时间
+    
     temp_single = 25.0
     conc_single = 0.3
     rho_result = egasp.prop(temp=temp_single, conc=conc_single, egp_key='rho')
@@ -53,10 +60,15 @@ def test_prop():
     mu_result = egasp.prop(temp=temp_single, conc=conc_single, egp_key='mu')
     print(f"温度: {temp_single}°C, 浓度: {conc_single}, 动力粘度: {mu_result} Pa·s")
     
-    print("\n" + "="*50 + "\n")
+    elapsed_time = time.time() - start_time  # 计算耗时
+    print(f"测试用例1执行时间: {elapsed_time:.6f}秒")
+    print("="*50 + "\n")
     
     # 测试用例2: 温度数组和单一浓度值
+    print("="*50)
     print("测试用例2: 温度数组和单一浓度值")
+    start_time = time.time()  # 记录开始时间
+    
     temp_array = np.array([0, 25, 50, 75, 100])
     conc_single = 0.5
     rho_results = egasp.prop(temp=temp_array, conc=conc_single, egp_key='rho')
@@ -66,10 +78,15 @@ def test_prop():
     cp_results = egasp.prop(temp=temp_array, conc=conc_single, egp_key='cp')
     print(f"比热容结果: {cp_results} J/kg·K")
     
-    print("\n" + "="*50 + "\n")
+    elapsed_time = time.time() - start_time  # 计算耗时
+    print(f"测试用例2执行时间: {elapsed_time:.6f}秒")
+    print("="*50 + "\n")
     
     # 测试用例3: 边界值测试
+    print("="*50)
     print("测试用例3: 边界值测试")
+    start_time = time.time()  # 记录开始时间
+    
     # 最小温度和浓度
     rho_min = egasp.prop(temp=-35, conc=0.1, egp_key='rho')
     print(f"最小温度(-35°C)和最小浓度(0.1)下的密度: {rho_min} kg/m³")
@@ -78,15 +95,28 @@ def test_prop():
     rho_max = egasp.prop(temp=125, conc=0.9, egp_key='rho')
     print(f"最大温度(125°C)和最大浓度(0.9)下的密度: {rho_max} kg/m³")
     
-    print("\n" + "="*50 + "\n")
+    elapsed_time = time.time() - start_time  # 计算耗时
+    print(f"测试用例3执行时间: {elapsed_time:.6f}秒")
+    print("="*50 + "\n")
     
     # 测试用例4: 插值效果测试
+    print("="*50)
     print("测试用例4: 插值效果测试")
+    start_time = time.time()  # 记录开始时间
+    
     # 使用非节点值进行测试
     rho_interp = egasp.prop(temp=27.5, conc=0.35, egp_key='rho')
     print(f"温度27.5°C (非节点值) 和浓度0.35 (非节点值) 下的密度: {rho_interp} kg/m³")
     
-    print("\n测试完成!")
+    elapsed_time = time.time() - start_time  # 计算耗时
+    print(f"测试用例4执行时间: {elapsed_time:.6f}秒")
+    print("="*50 + "\n")
+    
+    # 计算并打印总执行时间
+    total_elapsed_time = time.time() - total_start_time
+    print(f"\n所有测试用例执行完成!")
+    print(f"总执行时间: {total_elapsed_time:.6f}秒")
+    print(f"平均每个测试用例执行时间: {total_elapsed_time/4:.6f}秒")
 
 if __name__ == "__main__":
     test_prop()
