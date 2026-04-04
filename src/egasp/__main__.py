@@ -97,9 +97,9 @@ def cli_main():
 
     print_table(result)  # 调用print_table函数
 
-    # 检查更新
-    uc = UpdateChecker(1, 6)  # 访问超时, 单位: 秒;缓存时长, 单位: 小时
-    uc.check_for_updates()
+    # 检查更新（异步）
+    uc = UpdateChecker(1, 6)
+    uc.check_for_updates_async()
 
 
 def input_main():
@@ -132,11 +132,14 @@ def input_main():
             result = {"mass": mass, "volume": volume, "freezing": freezing, "boiling": boiling, "rho": rho, "cp": cp, "k": k, "mu": mu}
             print_table(result)
 
-            # 检查更新（复用原有更新逻辑）
+            # 检查更新（异步）
             uc = UpdateChecker(1, 6)
-            uc.check_for_updates()
+            uc.check_for_updates_async()
 
             console.input("[green]按任意键退出...[/]")
+            
+            # 显示异步版本检查结果
+            uc.get_async_result()
 
             break
 
