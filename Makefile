@@ -1,35 +1,56 @@
+.PHONY: all clean html rst whl pack inswhl upload pot mo poup excel-addin app_builder release-build
+
+# 变量定义
+UV_RUN = @uv run python
+TOOLS_DIR = ./tools
+
+# 默认目标
 all:
-	@python ./tools/make.py all
+	$(UV_RUN) $(TOOLS_DIR)/make.py all
 
+# 清理
 clean:
-	@python ./tools/utils.py clean
+	$(UV_RUN) $(TOOLS_DIR)/utils.py clean
 
+# 文档生成
 html:
-	@python ./tools/make.py html
+	$(UV_RUN) $(TOOLS_DIR)/make.py html
 
 rst:
-	@python ./tools/make.py rst
+	$(UV_RUN) $(TOOLS_DIR)/make.py rst
 
+# 构建wheel包
 whl: clean
-	uv build
+	@uv build
 
+# 打包可执行文件
 pack:
-	@python ./tools/pack.py pack
+	$(UV_RUN) $(TOOLS_DIR)/pack.py pack
 
+# 安装wheel包测试
 inswhl:
-	@python ./tools/make.py inswhl
+	$(UV_RUN) $(TOOLS_DIR)/make.py inswhl
 
+# 上传标签
 upload:
-	@python ./tools/make.py upload
+	$(UV_RUN) $(TOOLS_DIR)/make.py upload
 
-pot:
-	@python ./tools/lang_tool.py pot
+# 国际化
+pot mo poup:
+	$(UV_RUN) $(TOOLS_DIR)/lang_tool.py $@
 
-mo:
-	@python ./tools/lang_tool.py mo
+# 构建Excel/WPS插件
+excel-addin:
+	@echo "Building Excel/WPS integration add-in..."
+	$(UV_RUN) $(TOOLS_DIR)/build_addin.py
 
-poup:
-	@python ./tools/lang_tool.py poup
+# 构建完整应用
+app_builder:
+	@echo "Building full application package..."
+	$(UV_RUN) $(TOOLS_DIR)/app_builder.py
 
-# 作为一名专业的程序国际化专家，请在保留 msgid 中的原文的基础上，将 msgid 中的内容翻译成程序中用的英文，并填写到对应的 msgstr "" 中
-# 国际化更新流程：首先 运行 poup，然后修改pot文件，随后 运行 mo，删掉多余文件即可
+# 完整发布构建（包括插件和完整应用）
+release-build: whl pack excel-addin app_builder
+	@echo "Release excel-addin complete! Ready for publishing."
+
+	
