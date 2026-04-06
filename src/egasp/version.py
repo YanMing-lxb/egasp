@@ -1,4 +1,12 @@
 '''
+Author: YanMing-CX lxb-yanming@foxmail.com
+Date: 2026-04-04 18:44:47
+LastEditors: YanMing-CX lxb-yanming@foxmail.com
+LastEditTime: 2026-04-05 11:05:02
+FilePath: \egasp\src\egasp\version.py
+Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+'''
+'''
  =======================================================================
  ····Y88b···d88P················888b·····d888·d8b·······················
  ·····Y88b·d88P·················8888b···d8888·Y8P·······················
@@ -26,6 +34,6 @@ Description  :
 #!/usr/bin/env python
 
 __project_name__ = 'egasp'
-__version__ = '0.1.9'
+__version__ = '0.2.0'
 __author__ = '焱铭'
 __url__ = "https://github.com/YanMing-lxb"
