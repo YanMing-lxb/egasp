@@ -1,0 +1,480 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+ =======================================================================
+ ····Y88b···d88P················888b·····d888·d8b·······················
+ ·····Y88b·d88P·················8888b···d8888·Y8P·······················
+ ······Y88o88P··················88888b·d88888···························
+ ·······Y888P··8888b···88888b···888Y88888P888·888·88888b·····d88b·······
+ ········888······"88b·888·"88b·888·Y888P·888·888·888·"88b·d88P"88b·····
+ ········888···d888888·888··888·888··Y8P··888·888·888··888·888··888·····
+ ········888··888··888·888··888·888···"···888·888·888··888·Y88b·888·····
+ ········888··"Y888888·888··888·888·······888·888·888··888··"Y88888·····
+ ·······························································888·····
+ ··························································Y8b·d88P·····
+ ···························································"Y88P"······
+ =======================================================================
+
+ -----------------------------------------------------------------------
+Author       : 焱铭
+Date         : 2026-04-04
+LastEditTime : 2026-04-04
+Github       : https://github.com/YanMing-lxb/
+FilePath     : /egasp/tools/build_full_app.py
+Description  : 完整应用构建器
+ -----------------------------------------------------------------------
+"""
+
+import sys
+import shutil
+from pathlib import Path
+
+from utils import console, PerformanceTracker
+
+if sys.stdout.encoding != "UTF-8":
+    sys.stdout.reconfigure(encoding="utf-8")
+
+project_root = Path(__file__).parent.parent
+
+
+# 读取版本信息
+def get_version():
+    """
+    从版本文件获取版本号
+
+    Returns
+    -------
+    str
+        版本号字符串
+    """
+    version_file = project_root / "src" / "egasp" / "version.py"
+    if version_file.exists():
+        with open(version_file, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("__version__"):
+                    version = line.split("=")[1].strip()
+                    # 去除引号
+                    if (version.startswith('"') and version.endswith('"')) or (
+                        version.startswith("'") and version.endswith("'")
+                    ):
+                        version = version[1:-1]
+                    return version
+    return "1.0.0"
+
+
+__version__ = get_version()
+
+
+# 辅助函数
+def print_header(text):
+    """打印标题栏"""
+    console.rule(f"[bold]{text}[/]")
+
+
+def print_step(text):
+    """打印步骤信息"""
+    console.print(f"[*] {text}")
+
+
+def print_success(text):
+    """打印成功信息"""
+    console.print(f"[+] {text}", style="success")
+
+
+def print_error(text):
+    """打印错误信息"""
+    console.print(f"[-] {text}", style="error")
+
+def print_warning(text):
+    """打印警告信息"""
+    console.print(f"[!] {text}", style="warning")
+
+
+# 构建基础类
+class Builder:
+    """构建基础类"""
+
+    def __init__(self, output_dir):
+        self.output_dir = output_dir
+        self.version = __version__
+
+    def create_output_directory(self):
+        """
+        创建输出目录
+
+        Returns
+        -------
+        bool
+            操作是否成功
+        """
+        print_step(f"创建输出目录: {self.output_dir}")
+        try:
+            if self.output_dir.exists():
+                shutil.rmtree(self.output_dir)
+            self.output_dir.mkdir(parents=True, exist_ok=True)
+            print_success(f"输出目录已创建: {self.output_dir}")
+            return True
+        except Exception as e:
+            print_error(f"创建输出目录失败: {e}")
+            return False
+
+
+# Excel插件构建器
+class ExcelAddinBuilder(Builder):
+    """Excel插件构建器"""
+
+    def __init__(self, output_dir):
+        super().__init__(output_dir)
+        self.addin_files = [
+            project_root / "excel_addin" / "EGASP.bas",
+        ]
+
+    def check_dependencies(self):
+        """
+        检查Excel插件依赖项
+
+        Returns
+        -------
+        bool
+            依赖项检查是否通过
+        """
+        print_step("检查Excel插件依赖项...")
+
+        missing = []
+        for f in self.addin_files:
+            if not f.exists():
+                missing.append(str(f))
+
+        if missing:
+            print_error("缺少以下文件：")
+            for f in missing:
+                console.print(f"    {f}")
+            return False
+
+        print_success("所有依赖项检查通过")
+        return True
+
+    def copy_source_files(self):
+        """
+        复制源文件到输出目录
+
+        Returns
+        -------
+        bool
+            操作是否成功
+        """
+        print_step("复制Excel插件源文件...")
+
+        try:
+            addin_dir = self.output_dir / "excel_addin"
+            addin_dir.mkdir(parents=True, exist_ok=True)
+
+            for f in self.addin_files:
+                shutil.copy2(f, addin_dir / f.name)
+
+            print_success("Excel插件源文件复制完成")
+            return True
+
+        except Exception as e:
+            print_error(f"复制源文件失败: {e}")
+            return False
+
+
+# 完整应用构建器
+class FullAppBuilder(Builder):
+    """完整应用构建器"""
+
+    def __init__(self, output_dir):
+        super().__init__(output_dir)
+        self.exe_dir = project_root / "dist" / "egasp"
+
+    def check_dependencies(self):
+        """
+        检查完整应用依赖项
+
+        Returns
+        -------
+        bool
+            依赖项检查是否通过
+        """
+        print_step("检查完整应用依赖项...")
+
+        # 检查可执行文件
+        exe_file = self.exe_dir / "egasp.exe"
+        if not exe_file.exists():
+            print_error(f"可执行文件不存在: {exe_file}")
+            print_error("请先运行 'make pack' 生成可执行文件")
+            return False
+
+        print_success("所有依赖项检查通过")
+        return True
+
+    def copy_executable(self):
+        """
+        复制可执行文件
+
+        Returns
+        -------
+        bool
+            操作是否成功
+        """
+        print_step("复制可执行文件...")
+
+        try:
+            # 直接复制到根目录，不创建bin文件夹
+            # 复制可执行文件及相关文件
+            for item in self.exe_dir.iterdir():
+                if item.is_file():
+                    shutil.copy2(item, self.output_dir / item.name)
+                elif item.is_dir():
+                    shutil.copytree(item, self.output_dir / item.name)
+
+            print_success("可执行文件复制完成")
+            return True
+
+        except Exception as e:
+            print_error(f"复制可执行文件失败: {e}")
+            return False
+
+
+# 主构建类
+class BuildManager:
+    """构建管理器"""
+
+    def __init__(self):
+        self.version = __version__
+        self.dist_dir = project_root / "dist"
+
+    def build_full_app(self):
+        """
+        构建完整应用版本
+
+        Returns
+        -------
+        bool
+            操作是否成功
+        """
+        print_header(f"构建完整应用版本 (v{self.version})")
+
+        # 构建目录
+        full_app_dir = self.dist_dir / f"egasp-v{self.version}"
+
+        print_step("开始构建完整应用版本...")
+
+        # 1. 创建输出目录
+        print_step("1. 创建输出目录")
+        builder = Builder(full_app_dir)
+        if not builder.create_output_directory():
+            return False
+
+        # 2. 复制可执行文件
+        print_step("2. 复制可执行文件")
+        app_builder = FullAppBuilder(full_app_dir)
+        if not app_builder.check_dependencies():
+            print_error("缺少可执行文件，无法继续")
+            return False
+        if not app_builder.copy_executable():
+            return False
+
+        # 3. 复制Excel VBA加载项文件
+        print_step("3. 复制Excel VBA加载项文件")
+        try:
+            # 复制excel_addin目录
+            excel_addin_dir = project_root / "excel_addin"
+            if excel_addin_dir.exists():
+                # 复制VBA模块
+                vba_file = excel_addin_dir / "EGASP.bas"
+                if vba_file.exists():
+                    shutil.copy2(vba_file, full_app_dir / "EGASP.bas")
+                    print_success("VBA模块复制完成")
+            else:
+                print_error(f"Excel Add-in目录不存在: {excel_addin_dir}")
+                return False
+            
+        except Exception as e:
+            print_error(f"复制Excel VBA加载项文件失败: {e}")
+            return False
+
+        # 4. 安装脚本已移除
+        # 用户直接通过双击EGASP_Addin.xlam文件来安装
+
+        # 5. 复制环境变量配置脚本
+        print_step("5. 复制环境变量配置脚本")
+        try:
+            install_egasp_bat = project_root / "tools" / "configure_egasp_env.bat"
+            if install_egasp_bat.exists():
+                shutil.copy2(install_egasp_bat, full_app_dir / "configure_egasp_env.bat")
+                print_success("环境变量配置脚本复制完成")
+            else:
+                print_error(f"环境变量配置脚本不存在: {install_egasp_bat}")
+                return False
+        except Exception as e:
+            print_error(f"复制主安装脚本失败: {e}")
+            return False
+
+        # 6. 整合并复制README文件
+        print_step("6. 整合并复制README文件")
+        try:
+            # 读取项目根目录的README.md
+            root_readme = project_root / "README.md"
+            excel_readme = project_root / "excel_addin" / "README.md"
+            
+            combined_readme = ""
+            
+            # 读取根README
+            if root_readme.exists():
+                with open(root_readme, 'r', encoding='utf-8') as f:
+                    combined_readme = f.read()
+            
+            # 读取Excel插件README并整合
+            if excel_readme.exists():
+                with open(excel_readme, 'r', encoding='utf-8') as f:
+                    excel_content = f.read()
+                    # 在根README后添加Excel插件的内容
+                    combined_readme += "\n\n## Excel/WPS 插件使用说明\n\n"
+                    combined_readme += excel_content
+            
+            # 写入整合后的README
+            output_readme = full_app_dir / "README.md"
+            with open(output_readme, 'w', encoding='utf-8') as f:
+                f.write(combined_readme)
+            
+            print_success("README文件整合完成")
+        except Exception as e:
+            print_error(f"整合README文件失败: {e}")
+            # 即使失败也继续，因为README不是关键文件
+            pass
+
+        # 7. 创建7z包
+        print_step("7. 创建7z包")
+        zip_path = self.dist_dir / f"egasp-v{self.version}.7z"
+        if not self.create_zip_package(full_app_dir, zip_path):
+            return False
+
+        print_header("完整应用版本构建完成！")
+        console.print(f"输出目录: {full_app_dir}")
+        console.print(f"7z包: {zip_path}")
+        console.print("\n使用说明:")
+        console.print(f"  1. 解压 {zip_path}")
+        console.print("  2. 运行 configure_egasp_env.bat 配置EGASP环境变量")
+        console.print("  3. 运行 egasp.exe 启动主程序")
+        console.print("  4. 在Excel中按照README.md中的说明安装纯VBA Excel加载项")
+        return True
+
+    def check_7zip_availability(self):
+        """
+        检查7zip是否可用
+
+        Returns
+        -------
+        bool
+            7zip是否可用
+        """
+        print_step("检查7zip可用性...")
+        try:
+            import subprocess
+
+            result = subprocess.run(["7z", "--help"], capture_output=True, text=True)
+            if result.returncode == 0:
+                print_success("7zip可用")
+                return True
+            else:
+                print_error("7zip不可用，请确保7zip已安装并添加到系统PATH中")
+                return False
+        except FileNotFoundError:
+            print_error("7zip未找到，请确保7zip已安装并添加到系统PATH中")
+            return False
+        except Exception as e:
+            print_error(f"检查7zip时出错: {e}")
+            return False
+
+    def create_zip_package(self, output_dir, zip_path):
+        """
+        使用7zip创建7z分发包
+        
+        Parameters
+        ----------
+        output_dir : Path
+            输出目录
+        zip_path : Path
+            7z包路径
+            
+        Returns
+        -------
+        bool
+            操作是否成功
+        """
+        # 检查7zip可用性
+        if not self.check_7zip_availability():
+            return False
+        
+        print_step(f"创建分发包: {zip_path}")
+        
+        try:
+            import subprocess
+            # 构建7zip命令
+            cmd = [
+                "7z",
+                "a",
+                "-t7z",  # 使用7z格式
+                "-mx=9",  # 最大压缩级别
+                str(zip_path),
+                str(output_dir) + "\*",
+            ]
+
+            # 执行7zip命令
+            result = subprocess.run(cmd, capture_output=True, text=True)
+
+            if result.returncode == 0:
+                zip_size = zip_path.stat().st_size / 1024
+                print_success(f"分发包创建完成: {zip_path} ({zip_size:.1f} KB)")
+                return True
+            else:
+                print_error(f"7zip打包失败: {result.stderr}")
+                return False
+
+        except Exception as e:
+            print_error(f"创建分发包失败: {e}")
+            return False
+
+
+def build_full_app():
+    """
+    构建完整应用版本
+
+    Returns
+    -------
+    bool
+        操作是否成功
+    """
+    manager = BuildManager()
+    return manager.build_full_app()
+
+
+def main():
+    """主函数"""
+    print_header("EGASP 完整应用构建器")
+
+    tracker = PerformanceTracker()
+
+    try:
+        result, performance = tracker.execute_with_timing(
+            build_full_app, "构建完整应用版本"
+        )
+        tracker.add_record(performance)
+
+        tracker.generate_report()
+
+        return 0 if result else 1
+
+    except Exception as e:
+        console.rule("[bold red]💥 发生未知异常！[/]")
+        console.print_exception(show_locals=True)
+        console.print(f"异常类型: {type(e).__name__}")
+        console.print(f"异常内容: {str(e)}")
+        console.print("请联系开发者并附上以上异常信息以便排查问题", style="warning")
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
