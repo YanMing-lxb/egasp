@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.13"
 license = "GPL-3.0-or-later"
 classifiers = [
     "Environment :: Console",
@@ -57,5 +57,6 @@ egasp = ["locale/en/LC_MESSAGES/*.mo"]
 [dependency-groups]
 dev = [
     "pyinstaller>=6.14.2",
+    "pyyaml>=6.0.3",
     "setuptools>=80.9.0",
 ]
