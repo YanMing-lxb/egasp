@@ -1,0 +1,34 @@
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui" onLoad="EGASP_Ribbon_Load">
+  <ribbon>
+    <tabs>
+      <tab id="EGASP_Tab" label="EGASP">
+        <group id="EGASP_Group_Init" label="初始化">
+          <button id="EGASP_Initialize" label="初始化 EGASP" size="large" 
+                  imageMso="RefreshStatus" onAction="EGASP_InitializeRibbon" 
+                  screentip="初始化 EGASP 环境" supertip="检查 egasp.exe 是否可用并初始化环境"/>
+        </group>
+        <group id="EGASP_Group_Query" label="物性参数查询">
+          <button id="EGASP_PropertyQuery" label="物性参数查询" size="large" 
+                  imageMso="Calculator" onAction="EGASP_PropertyQueryRibbon" 
+                  screentip="物性参数查询" supertip="打开物性参数查询功能"/>
+          <button id="EGASP_FunctionWizard" label="函数向导" size="normal" 
+                  imageMso="FunctionWizard" onAction="EGASP_FunctionWizardRibbon" 
+                  screentip="函数向导" supertip="打开 Excel 函数向导"/>
+        </group>
+        <group id="EGASP_Group_Cache" label="缓存管理">
+          <button id="EGASP_ClearCache" label="清除缓存" size="normal" 
+                  imageMso="Delete" onAction="EGASP_ClearCacheRibbon" 
+                  screentip="清除缓存" supertip="清除计算缓存"/>
+          <button id="EGASP_CacheStatus" label="缓存状态" size="normal" 
+                  imageMso="ServerProperties" onAction="EGASP_CacheStatusRibbon" 
+                  screentip="缓存状态" supertip="查看当前缓存使用情况"/>
+        </group>
+        <group id="EGASP_Group_About" label="关于">
+          <button id="EGASP_About" label="关于 EGASP" size="normal" 
+                  imageMso="Info" onAction="EGASP_AboutRibbon" 
+                  screentip="关于 EGASP" supertip="查看 EGASP 版本和版权信息"/>
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>
