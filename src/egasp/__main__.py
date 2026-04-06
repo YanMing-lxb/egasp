@@ -150,40 +150,19 @@ def input_main():
 
 def excel_entry():
     """
-    用于 Excel 调用的入口函数，接收参数并输出单一属性值到临时文件
-    使用方式：
-        egasp.exe --excel --type=volume --value=50 --temp=25 --prop=rho
+    用于 Excel/WPS 调用的入口函数 - 使用新的 excel_integration 模块
+    支持多种调用模式：单属性、完整数据、批量处理
     """
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--type', type=str, required=True, help='查询类型 (volume/mass)')
-    parser.add_argument('--value', type=float, required=True, help='浓度值')
-    parser.add_argument('--temp', type=float, required=True, help='温度值')
-    parser.add_argument('--prop', type=str, required=True, help='要查询的属性')
-    args = parser.parse_args()
-
-
-    mass, volume, freezing, boiling, rho, cp, k, mu = eg.props(args.temp, args.type, args.value)
-    props_map = {
-        'mass': mass,
-        'volume': volume,
-        'freezing': freezing,
-        'boiling': boiling,
-        'rho': rho,
-        'cp': cp,
-        'k': k,
-        'mu': mu
-    }
-    result = props_map.get(args.prop.lower(), '#N/A')
-    
-    print(result)
-
-    # 将结果写入临时文件供 Excel 读取
-    output_path = os.path.join(os.path.dirname(sys.argv[0]), 'egasp_output.tmp')
-    with open(output_path, 'w') as f:
-        f.write(str(result))
+    from egasp.excel_integration import excel_main
+    excel_main()
 
 
 def main():
+    # 检查 --version 参数
+    if '--version' in sys.argv or '-v' in sys.argv:
+        print(f"{__project_name__} {__version__}")
+        return
+
     if len(sys.argv) > 1:
         if sys.argv[1] == '--excel':
             # 移除第一个参数 '--excel'，避免干扰 argparse
