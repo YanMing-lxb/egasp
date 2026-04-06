@@ -1,0 +1,48 @@
+Author: YanMing
+Commands:
+- egasp
+Copyright: © 2025 YanMing
+Description: EGASP是一个用于查询乙二醇水溶液物性参数的工具，支持多种浓度类型和温度范围。
+Installers:
+- Architecture: x64
+  ExpectedReturnCodes:
+  - 0
+  InstallerLocale: zh-CN
+  InstallerSha256: placeholder
+  InstallerSwitches:
+    Silent: -s
+    SilentWithProgress: -sp
+  InstallerType: 7z
+  InstallerUrl: https://github.com/YanMing-lxb/egasp/releases/download/v0.2.0/egasp-v0.2.0.7z
+License: MIT
+LicenseUrl: https://github.com/YanMing-lxb/egasp/blob/main/LICENSE
+ManifestType: singleton
+ManifestVersion: 1.5.0
+Moniker: egasp
+PackageIdentifier: YanMing.EGASP
+PackageName: EGASP
+PackageUrl: https://github.com/YanMing-lxb/egasp
+PackageVersion: 0.2.0
+PostInstallCommands:
+- Command: echo [EGASP] 安装完成！可执行文件已添加到系统PATH
+  Description: 显示安装完成信息
+- Command: echo [EGASP] 要安装Excel/WPS插件，请运行：%LOCALAPPDATA%\EGASP\addin\install.bat
+  Description: 显示Excel插件安装指引
+- Command: echo [EGASP] 如果egasp命令不可用，请手动添加环境变量：
+  Description: 显示环境变量添加指引
+- Command: 'echo [EGASP]   PowerShell命令: $env:PATH += ";%LOCALAPPDATA%\EGASP\bin"'
+  Description: 显示PowerShell环境变量命令
+- Command: 'echo [EGASP]   PowerShell命令: [Environment]::SetEnvironmentVariable("PATH",
+    $env:PATH, "User")'
+  Description: 显示PowerShell环境变量持久化命令
+Publisher: YanMing
+PublisherSupportUrl: https://github.com/YanMing-lxb/egasp/issues
+PublisherUrl: https://github.com/YanMing-lxb
+ReleaseNotes: https://github.com/YanMing-lxb/egasp/releases/tag/v0.2.0
+ReleaseNotesUrl: https://github.com/YanMing-lxb/egasp/releases/tag/v0.2.0
+ShortDescription: 乙二醇水溶液属性查询程序
+Tags:
+- egasp
+- glycol
+- properties
+- calculator
