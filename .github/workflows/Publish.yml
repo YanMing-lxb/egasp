@@ -32,7 +32,8 @@ jobs:
       with:
         name: python-package-distributions  # 指定上传的artifact名称
         path: |
-          dist/
+          dist/*.tar.gz
+          dist/*.whl
           CHANGELOG.md
 
   build-windows:
@@ -54,12 +55,32 @@ jobs:
     - name: 安装项目
       run: uv sync --locked --all-extras --dev
 
-    - name: Build 📦 source  # 构建源代码
+    - name: 安装 7zip
+      run: choco install 7zip -y
+      shell: pwsh
+
+    - name: Build 📦 executable  # 构建可执行文件
       run: |
         cd ${{ github.workspace }}
         $env:PYTHONIOENCODING = "utf-8"  # 使用PowerShell环境变量语法
         uv run ${{ github.workspace }}\tools\pack.py pack
       shell: pwsh
+    
+    - name: Build 📦 Excel add-in  # 构建Excel插件
+      run: |
+        cd ${{ github.workspace }}
+        $env:PYTHONIOENCODING = "utf-8"
+        uv run ${{ github.workspace }}\tools\build_addin.py
+      shell: pwsh
+    
+    - name: Build 📦 full application package  # 构建完整应用包
+      run: |
+        cd ${{ github.workspace }}
+        $env:PYTHONIOENCODING = "utf-8"
+        uv run ${{ github.workspace }}\tools\app_builder.py
+      shell: pwsh
+    
+
     
     - name: List dist directory contents  # 列出dist目录内容的调试步骤
       run: ls -R dist/
@@ -68,7 +89,8 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: windows-python-package-distributions
-        path: dist/egasp/egasp.exe
+        path: |
+          dist/egasp-*.7z
 
   publish-to-pypi:
     name: Publish 🐍 egasp 📦 to PyPI  # 定义发布到PyPI作业的名称
@@ -124,11 +146,6 @@ jobs:
     - name: Verify file structure after download
       run: ls -R dist/
     
-    - name: Move xlsx and xlam files from src to dist
-      run: |
-        cp ${{ github.workspace }}/src/EgaspAddin.xlsx dist/
-        cp ${{ github.workspace }}/src/EgaspAddin.xlam dist/
-
     - name: Extract tag name  # 提取标签名称的步骤
       id: extract_tag
       run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
@@ -161,4 +178,7 @@ jobs:
         body_path: ${{ github.workspace }}-CHANGELOG.txt
         token: ${{ secrets.PUBLISH_EGASP }}  # 替换为实际的GitHub Token
         name: egasp ${{ github.ref_name }} # 
-        files: dist/*  # 指定要发布的文件路径
+        files: |
+          dist/*.tar.gz
+          dist/*.whl
+          dist/egasp-*.7z
