@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "description": "乙二醇水溶液属性查询程序",
+  "homepage": "https://github.com/YanMing-lxb/egasp",
+  "license": "MIT",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/YanMing-lxb/egasp/releases/download/v0.2.0/egasp-v0.2.0.7z",
+      "hash": "placeholder"
+    }
+  },
+  "extract_dir": "egasp-v0.2.0",
+  "bin": [
+    "bin\\egasp.exe"
+  ],
+  "post_install": [
+    "Write-Host '\n[EGASP] 安装完成！' -ForegroundColor Green",
+    "Write-Host '[EGASP] 可执行文件已添加到系统PATH' -ForegroundColor Green",
+    "Write-Host '[EGASP] 要安装Excel/WPS插件，请运行：' -ForegroundColor Yellow",
+    "Write-Host '[EGASP]   & $dir\\addin\\install.bat' -ForegroundColor Yellow",
+    "Write-Host '[EGASP] 如果egasp命令不可用，请手动添加环境变量：' -ForegroundColor Yellow",
+    "Write-Host '[EGASP]   $env:PATH += \";$dir\\bin\"' -ForegroundColor Yellow",
+    "Write-Host '[EGASP]   [Environment]::SetEnvironmentVariable(\"PATH\", $env:PATH, \"User\")' -ForegroundColor Yellow"
+  ],
+  "notes": "EGASP - 乙二醇水溶液属性查询程序"
+}
