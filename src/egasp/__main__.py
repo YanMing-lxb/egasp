@@ -71,6 +71,66 @@ def print_table(result: dict):
     console.print(table)
 
 
+def print_multi_temp_table(results: list, query_type: str):
+    """
+    打印多温度查询结果的表格
+    :param results: 结果列表，每个元素是包含温度和属性的字典
+    :param query_type: 查询类型 (volume/mass)
+    """
+    from rich.text import Text
+    from rich.console import Console
+    console = Console()
+    
+    # 根据查询类型确定输出的浓度类型
+    output_conc_type = "Mass Conc." if query_type in ["volume", "v"] else "Vol. Conc."
+    
+    # 提取固定值
+    if results:
+        freezing = results[0]['freezing']
+        boiling = results[0]['boiling']
+        output_conc = results[0]['mass'] * 100 if query_type in ["volume", "v"] else results[0]['volume'] * 100
+    
+    # 打印标题和符号分割线
+    console.print(  Text("乙二醇水溶液多温度查询结果", style="bold dark_orange"), width=54, justify="center")
+    
+    # 打印表格分隔线（首行）
+    console.print(Text("  +-------+---------+---------+--------+------------+"))
+    
+    # 打印表头
+    header_line = f"  {'Temp':^9}{'Dens':^9}{'Cp':^11}{'Cond':^9}{'Visc':^13}"
+    console.print(Text(header_line, style="bold dark_orange"))
+    units_line = f"  {'deg C':^9}{'kg/m3':^9}{'J/kg-K':^11}{'W/m-K':^9}{'Pa-s':^13}"
+    console.print(Text(units_line, style="red"))
+    console.print(Text("  +=======+=========+=========+========+============+"))
+    
+    # 格式化值的函数
+    def format_str(value, format_str):
+        if value is None:
+            return "N/A"
+        return f"{value:{format_str}}"
+    
+    # 打印数据行
+    for res in results:
+        data_line = (
+            f"  {format_str(res['temp'], '.2f'):^9}"
+            f"{format_str(res['rho'], '.2f'):^9}"
+            f"{format_str(res['cp'], '.2f'):^11}"
+            f"{format_str(res['k'], '.4f'):^9}"
+            f"{format_str(res['mu'], '.4e'):^13}"
+        )
+        console.print(Text(data_line, style="green"))
+    console.print(Text("  +-------+---------+---------+--------+------------+"))
+
+    # 打印固定属性 - 使用不同颜色区分，更紧凑
+    console.print(Text(f" {output_conc_type}: ", style="cyan"), end="")
+    console.print(Text(f"{output_conc:.2f}", style="green"), end="")
+    console.print(Text(" %", style="red"), end="  ")
+    
+    console.print(Text("Freez./Boil.: ", style="magenta"), end="")
+    console.print(Text(f"{freezing:.2f}/{boiling:.2f}", style="green"), end="")
+    console.print(Text(" deg C", style="red"))
+    print('-----+--------------------------------------------+-----')
+
 def cli_main():
     parser = argparse.ArgumentParser(
         prog='egasp',
@@ -78,8 +138,8 @@ def cli_main():
         formatter_class=RichHelpFormatter,
     )
     parser.add_argument("-qt", "--query_type", type=str, default="volume", help="浓度类型 (volume/mass or v/m), 默认值为 volume (体积浓度)")
-    parser.add_argument("-qv", "--query_value", type=float, default=0.5, help="查询浓度 (范围: 0.1 ~ 0.9), 默认值为 0.5")  # 修改此处
-    parser.add_argument("query_temp", type=float, help="查询温度 °C (范围: -35 ~ 125)")  # 如果温度单位有%也需要转义
+    parser.add_argument("-qv", "--query_value", type=float, default=0.5, help="查询浓度 (范围: 0.1 ~ 0.9), 默认值为 0.5")
+    parser.add_argument("query_temp", nargs='+', type=float, help="查询温度 °C (范围: -35 ~ 125)，支持多个温度值")
 
     args = parser.parse_args()
 
@@ -90,12 +150,32 @@ def cli_main():
     print(f"查询类型: {args.query_type}")
     print(f"查询浓度: {args.query_value}")
     print(f"查询温度: {args.query_temp} °C")
-    mass, volume, freezing, boiling, rho, cp, k, mu = eg.props(args.query_temp, args.query_type, args.query_value)
-    print('-----+--------------------------------------------+-----\n')
-
-    result = {"mass": mass, "volume": volume, "freezing": freezing, "boiling": boiling, "rho": rho, "cp": cp, "k": k, "mu": mu}
-
-    print_table(result)  # 调用print_table函数
+    
+    # 判断是否为多温度查询
+    if len(args.query_temp) > 1:
+        # 多温度查询
+        results = []
+        for temp in args.query_temp:
+            mass, volume, freezing, boiling, rho, cp, k, mu = eg.props(temp, args.query_type, args.query_value)
+            results.append({
+                "temp": temp,
+                "mass": mass,
+                "volume": volume,
+                "freezing": freezing,
+                "boiling": boiling,
+                "rho": rho,
+                "cp": cp,
+                "k": k,
+                "mu": mu
+            })
+        print('-----+--------------------------------------------+-----')
+        print_multi_temp_table(results, args.query_type)
+    else:
+        # 单温度查询
+        mass, volume, freezing, boiling, rho, cp, k, mu = eg.props(args.query_temp[0], args.query_type, args.query_value)
+        print('-----+--------------------------------------------+-----\n')
+        result = {"mass": mass, "volume": volume, "freezing": freezing, "boiling": boiling, "rho": rho, "cp": cp, "k": k, "mu": mu}
+        print_table(result)
 
     # 检查更新（异步）
     uc = UpdateChecker(1, 6)
