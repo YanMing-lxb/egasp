@@ -12,11 +12,12 @@ description = "乙二醇水溶液属性查询程序 Ethylene Glycol Aqueous Solu
 keywords = ["Ethylene Glycol", "Properties"]
 dependencies = [
     "rich>=14.0.0",
-    "rich-argparse>=1.7.1",
+    "rich-argparse>=1.7.2",
     "toml>=0.10.2",
     "packaging>=25.0",
     "platformdirs>=4.3.8",
     "numpy>=2.0.2",
+    "pywin32>=311",
 ]
 
 readme = "README.md"
@@ -34,6 +35,9 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Operating System :: OS Independent",
 ]
+
+[project.optional-dependencies]
+excel = ["pywin32>=305; sys_platform == 'win32'"]
 
 [project.urls]
 "Homepage" = "https://github.com/YanMing-lxb/egasp"
@@ -60,3 +64,4 @@ dev = [
     "pyyaml>=6.0.3",
     "setuptools>=80.9.0",
 ]
+excel = ["pywin32>=305; sys_platform == 'win32'"]
