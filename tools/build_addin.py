@@ -55,7 +55,7 @@ project_root = Path(__file__).parent.parent
 def get_version():
     """
     从版本文件获取版本号
-    
+
     Returns
     -------
     str
@@ -80,18 +80,18 @@ class PerformanceTracker:
     """性能跟踪器"""
     def __init__(self):
         self.records = []
-    
+
     def execute_with_timing(self, func, description):
         """
         执行函数并记录执行时间
-        
+
         Parameters
         ----------
         func : callable
             要执行的函数
         description : str
             操作描述
-            
+
         Returns
         -------
         tuple
@@ -103,29 +103,29 @@ class PerformanceTracker:
         end_time = time.time()
         execution_time = end_time - start_time
         return result, execution_time
-    
+
     def add_record(self, execution_time):
         """
         添加性能记录
-        
+
         Parameters
         ----------
         execution_time : float
             执行时间
         """
         self.records.append(execution_time)
-    
+
     def generate_report(self):
         """
         生成性能报告
         """
         if not self.records:
             return
-        
+
         console.rule("[bold]性能报告[/]")
         for i, time_taken in enumerate(self.records, 1):
             console.print(f"操作 {i}: {time_taken:.2f} 秒")
-        
+
         if len(self.records) > 1:
             total_time = sum(self.records)
             avg_time = total_time / len(self.records)
@@ -153,17 +153,21 @@ def print_warning(text):
     """打印警告信息"""
     console.print(f"[!] {text}", style="warning")
 
+def print_info(text):
+    """打印信息"""
+    console.print(f"[i] {text}", style="info")
+
 # 构建基础类
 class Builder:
     """构建基础类"""
     def __init__(self, output_dir):
         self.output_dir = output_dir
         self.version = __version__
-    
+
     def create_output_directory(self):
         """
         创建输出目录
-        
+
         Returns
         -------
         bool
@@ -173,7 +177,7 @@ class Builder:
         try:
             if self.output_dir.exists():
                 shutil.rmtree(self.output_dir)
-            
+
             self.output_dir.mkdir(parents=True, exist_ok=True)
             print_success(f"输出目录已创建: {self.output_dir}")
             return True
@@ -187,132 +191,189 @@ class ExcelVBABuilder(Builder):
     def __init__(self, output_dir):
         super().__init__(output_dir)
         self.excel_addin_dir = project_root / 'excel_addin'
-    
+
     def check_dependencies(self):
         """
         检查VBA Excel加载项依赖项
-        
+
         Returns
         -------
         bool
             依赖项检查是否通过
         """
         print_step("检查VBA Excel加载项依赖项...")
-        
+
         # 检查excel_addin目录是否存在
         if not self.excel_addin_dir.exists():
             print_error(f"Excel Add-in目录不存在: {self.excel_addin_dir}")
             return False
-        
-        # 检查必要的文件
+
+        # 检查必要的文件 - 现在有4个模块文件
         required_files = [
-            'EGASP.bas'
+            'EGASP_Cache.bas',
+            'EGASP_Module.bas',
+            'EGASP_Register.bas',
+            'EGASP_Ribbon.bas'
         ]
-        
+
+        all_files_exist = True
         for file_name in required_files:
             file_path = self.excel_addin_dir / file_name
             if not file_path.exists():
                 print_error(f"缺少必要文件: {file_path}")
-                return False
-        
+                all_files_exist = False
+
+        if not all_files_exist:
+            return False
+
         print_success("所有依赖项检查通过")
         return True
-    
+
     def create_xlam_file(self):
         """
         创建.xlam Excel加载项文件
-        
+
         Returns
         -------
         bool
             操作是否成功
         """
-        print_step("创建.xlam Excel加载项文件...")
-        
+        print_step("尝试自动创建.xlam Excel加载项文件...")
+
+        # 首先复制VBA源文件，这样即使自动创建失败也有文件可用
+        self.copy_vba_files()
+
+        # VBA模块列表，按正确的顺序导入
+        vba_modules = [
+            ('EGASP_Cache.bas', 'EGASP_Cache'),
+            ('EGASP_Module.bas', 'EGASP_Module'),
+            ('EGASP_Register.bas', 'EGASP_Register'),
+            ('EGASP_Ribbon.bas', 'EGASP_Ribbon')
+        ]
+
+        excel = None
+        workbook = None
+
         try:
             import win32com.client as win32
-            
-            # 读取VBA代码
-            vba_file = self.excel_addin_dir / 'EGASP.bas'
-            with open(vba_file, 'r', encoding='utf-8') as f:
-                vba_code = f.read()
-            
-            # 创建Excel应用程序对象
-            excel = win32.Dispatch("Excel.Application")
-            excel.Visible = False
-            excel.DisplayAlerts = False
-            
+
+            # 尝试创建Excel应用程序对象
             try:
-                # 创建新工作簿
+                excel = win32.gencache.EnsureDispatch("Excel.Application")
+                excel.Visible = False
+                excel.DisplayAlerts = False
+                excel.ScreenUpdating = False
+            except Exception as e:
+                print_warning(f"无法启动Excel: {e}")
+                print_info("VBA源代码文件已准备好，您可以手动创建.xlam文件")
+                return True
+
+            # 尝试创建新工作簿 - 使用不同的方法
+            try:
+                # 方法1: 直接Add
                 workbook = excel.Workbooks.Add()
-                
-                # 导入VBA模块
-                vb_project = workbook.VBProject
+            except Exception:
+                try:
+                    # 方法2: 使用模板
+                    workbook = excel.Workbooks.Add(-4167)  # xlWBATWorksheet
+                except Exception as e2:
+                    print_warning(f"无法创建Excel工作簿: {e2}")
+                    print_info("VBA源代码文件已准备好，您可以手动创建.xlam文件")
+                    if excel:
+                        try:
+                            excel.Quit()
+                        except:
+                            pass
+                    return True
+
+            # 导入所有VBA模块
+            vb_project = workbook.VBProject
+
+            for file_name, module_name in vba_modules:
+                vba_file = self.excel_addin_dir / file_name
+                with open(vba_file, 'r', encoding='utf-8') as f:
+                    vba_code = f.read()
+
+                # 添加模块
                 vb_component = vb_project.VBComponents.Add(1)  # 1 = vbext_ct_StdModule
-                vb_component.Name = "EGASP"
-                
+                vb_component.Name = module_name
+
                 # 写入VBA代码
                 code_module = vb_component.CodeModule
                 code_module.AddFromString(vba_code)
-                
-                # 保存为.xlam文件
-                xlam_path = self.output_dir / 'EGASP Addin.xlam'
-                workbook.SaveAs(str(xlam_path), FileFormat=55)  # 55 = xlOpenXMLAddIn
-                
-                print_success(f".xlam文件已创建: {xlam_path}")
-                
-                return True
-                
-            finally:
-                # 关闭工作簿和Excel
-                if 'workbook' in locals():
-                    workbook.Close(SaveChanges=False)
-                excel.Quit()
-                
+
+            # 保存为.xlam文件
+            xlam_path = self.output_dir / 'EGASP Addin.xlam'
+            workbook.SaveAs(str(xlam_path), FileFormat=55)  # 55 = xlOpenXMLAddIn
+
+            print_success(f".xlam文件已创建: {xlam_path}")
+            return True
+
         except ImportError:
-            print_warning("未安装pywin32，无法自动创建.xlam文件")
-            print_step("将提供VBA源代码文件和手动创建说明")
-            return self.copy_vba_files()
-            
+            print_warning("未安装pywin32，跳过自动创建.xlam文件")
+            print_info("VBA源代码文件已准备好，您可以手动创建.xlam文件")
+            return True
+
         except Exception as e:
-            print_error(f"创建.xlam文件失败: {e}")
-            import traceback
-            traceback.print_exc()
-            print_step("将提供VBA源代码文件和手动创建说明")
-            return self.copy_vba_files()
-    
+            print_warning(f"自动创建.xlam文件失败: {e}")
+            print_info("VBA源代码文件已准备好，您可以手动创建.xlam文件")
+            return True
+
+        finally:
+            # 清理资源
+            if workbook:
+                try:
+                    workbook.Close(SaveChanges=False)
+                except:
+                    pass
+            if excel:
+                try:
+                    excel.ScreenUpdating = True
+                    excel.Quit()
+                except:
+                    pass
+
     def copy_vba_files(self):
         """
         复制VBA源代码文件到输出目录
-        
+
         Returns
         -------
         bool
             操作是否成功
         """
         print_step("复制VBA源代码文件...")
-        
+
         try:
-            # 复制VBA模块
-            vba_file = self.excel_addin_dir / 'EGASP.bas'
-            if vba_file.exists():
-                shutil.copy2(vba_file, self.output_dir / 'EGASP.bas')
-            
+            # 复制所有VBA模块和其他文件
+            vba_files = [
+                'EGASP_Cache.bas',
+                'EGASP_Module.bas',
+                'EGASP_Register.bas',
+                'EGASP_Ribbon.bas',
+                'customUI.xml'
+            ]
+
+            for file_name in vba_files:
+                src_file = self.excel_addin_dir / file_name
+                if src_file.exists():
+                    shutil.copy2(src_file, self.output_dir / file_name)
+
             # 创建README
             self.create_readme()
-            
+
             print_success("VBA文件复制完成")
             return True
-            
+
         except Exception as e:
             print_error(f"复制VBA文件失败: {e}")
             import traceback
             traceback.print_exc()
             return False
-    
+
     def create_readme(self):
         """创建README文件"""
-        readme_content = """# EGASP Excel加载项 (纯VBA版)
+        readme_content = """# EGASP Excel加载项(纯VBA版)
 
 ## 安装说明
 
@@ -333,12 +394,16 @@ class ExcelVBABuilder(Builder):
 
 ### 安装方法二：手动导入VBA模块
 
-如果只有`EGASP.bas`文件：
+如果只有VBA源代码文件：
 
 1. 打开Excel
 2. 按下`Alt+F11`打开VBA编辑器
 3. 点击`文件` -> `导入文件`
-4. 选择`EGASP.bas`文件
+4. 按顺序导入以下文件：
+   - `EGASP_Cache.bas`
+   - `EGASP_Module.bas`
+   - `EGASP_Register.bas`
+   - `EGASP_Ribbon.bas`
 5. 保存工作簿为`.xlam`格式（Excel加载项）
 6. 按照方法一的步骤加载此.xlam文件
 
@@ -383,7 +448,7 @@ class ExcelVBABuilder(Builder):
 3. 如果遇到问题，请查看Excel的宏安全设置，确保启用了宏
 4. 加载项内置了缓存机制，重复计算相同参数会非常快
 """
-        
+
         readme_path = self.output_dir / 'README.md'
         with open(readme_path, 'w', encoding='utf-8') as f:
             f.write(readme_content)
@@ -394,40 +459,40 @@ class BuildManager:
     def __init__(self):
         self.version = __version__
         self.dist_dir = project_root / 'dist'
-    
+
     def build_excel_addin(self):
         """
         构建纯VBA Excel加载项
-        
+
         Returns
         -------
         bool
             操作是否成功
         """
-        print_header(f"构建纯VBA Excel加载项 (v{self.version})")
-        
+        print_header(f"构建纯VBA Excel加载项(v{self.version})")
+
         # 构建目录
         addin_dir = self.dist_dir / 'excel_addin'
-        
+
         print_step("开始构建纯VBA Excel加载项...")
-        
+
         # 1. 创建输出目录
         print_step("1. 创建输出目录")
         builder = Builder(addin_dir)
         if not builder.create_output_directory():
             return False
-        
+
         # 2. 检查依赖项
         print_step("2. 检查依赖项")
         excel_builder = ExcelVBABuilder(addin_dir)
         if not excel_builder.check_dependencies():
             return False
-        
+
         # 3. 创建.xlam文件或复制VBA文件
         print_step("3. 构建Excel加载项")
         if not excel_builder.create_xlam_file():
             return False
-        
+
         print_header("纯VBA Excel加载项构建完成！")
         console.print(f"输出目录: {addin_dir}")
         console.print("\n使用说明:")
@@ -439,22 +504,22 @@ class BuildManager:
 def main():
     """主函数"""
     print_header("EGASP 纯VBA Excel加载项构建工具")
-    
+
     tracker = PerformanceTracker()
-    
+
     try:
         manager = BuildManager()
         result, performance = tracker.execute_with_timing(manager.build_excel_addin, "构建纯VBA Excel加载项")
         tracker.add_record(performance)
-        
+
         tracker.generate_report()
-        
+
         return 0 if result else 1
-    
+
     except Exception as e:
         console.rule("[bold red]发生未知异常！[/]")
         console.print_exception(show_locals=True)
-        console.print(f"异常类型: {type(e).__name__}")
+        console.print(f"异常类型: {type(e).__name}")
         console.print(f"异常内容: {str(e)}")
         console.print("请联系开发者并附上以上异常信息以便排查问题", style="warning")
         return 1
