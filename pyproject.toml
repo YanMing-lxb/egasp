@@ -17,7 +17,6 @@ dependencies = [
     "packaging>=25.0",
     "platformdirs>=4.3.8",
     "numpy>=2.0.2",
-    "pywin32>=311",
 ]
 
 readme = "README.md"

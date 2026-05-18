@@ -22,7 +22,7 @@ jobs:
         python-version-file: "pyproject.toml"
 
     - name: 安装项目
-      run: uv sync --locked --all-extras --dev
+      run: uv sync --locked --dev
 
     - name: Build 📦 source and wheel  # 构建源代码和wheel包的步骤
       run: uv build
