@@ -40,9 +40,9 @@ excel = [
 
 [package.metadata]
 requires-dist = [
-    { name = "numpy", specifier = ">=2.0.2" },
-    { name = "packaging", specifier = ">=25.0" },
-    { name = "platformdirs", specifier = ">=4.3.8" },
+    { name = "numpy", specifier = ">=2.5.3" },
+    { name = "packaging", specifier = ">=26.3" },
+    { name = "platformdirs", specifier = ">=4.11.12" },
     { name = "pywin32", marker = "sys_platform == 'win32' and extra == 'excel'", specifier = ">=305" },
     { name = "rich", specifier = ">=14.0.0" },
     { name = "rich-argparse", specifier = ">=1.7.2" },
@@ -52,9 +52,9 @@ provides-extras = ["excel"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "pyinstaller", specifier = ">=6.14.2" },
+    { name = "pyinstaller", specifier = ">=6.22.3" },
     { name = "pyyaml", specifier = ">=6.0.3" },
-    { name = "setuptools", specifier = ">=80.9.0" },
+    { name = "setuptools", specifier = ">=84.0.0" },
 ]
 excel = [{ name = "pywin32", marker = "sys_platform == 'win32'", specifier = ">=305" }]
 
