@@ -54,7 +54,7 @@ ERROR_MESSAGES = {
     ErrorCode.INVALID_CONCENTRATION_TYPE: "无效的浓度类型，支持: volume/mass",
     ErrorCode.INVALID_CONCENTRATION_VALUE: "浓度值超出范围，有效范围: 0.1-0.9",
     ErrorCode.INVALID_TEMPERATURE: "温度超出范围，有效范围: -35°C ~ 125°C",
-    ErrorCode.INVALID_PROPERTY: "无效的物性参数，支持: rho/cp/k/mu/mass/volume/freezing/boiling",
+    ErrorCode.INVALID_PROPERTY: "无效的物性参数，支持: rho/cp/h/k/mu/mass/volume/freezing/boiling",
     ErrorCode.DATA_MISSING: "数据缺失，无法完成计算",
     ErrorCode.CALCULATION_ERROR: "计算错误，请检查输入参数",
     ErrorCode.IO_ERROR: "文件操作错误",
@@ -94,6 +94,7 @@ class PropertyResult:
     boiling_point: float | None
     density: float | None
     specific_heat: float | None
+    enthalpy: float | None
     thermal_conductivity: float | None
     viscosity: float | None
     execution_time_ms: float = 0.0
@@ -131,6 +132,8 @@ class ExcelIntegration:
         'boiling': 'boiling_point',
         'rho': 'density',
         'cp': 'specific_heat',
+        'h': 'enthalpy',
+        'enthalpy': 'enthalpy',
         'k': 'thermal_conductivity',
         'mu': 'viscosity',
         # 别名支持
@@ -152,6 +155,7 @@ class ExcelIntegration:
         'boiling_point': '°C',
         'density': 'kg/m³',
         'specific_heat': 'J/kg·K',
+        'enthalpy': 'J/kg',
         'thermal_conductivity': 'W/m·K',
         'viscosity': 'Pa·s',
     }
@@ -238,7 +242,7 @@ class ExcelIntegration:
 
         try:
             # 执行计算
-            mass, volume, freezing, boiling, rho, cp, k, mu = self.egasp.props(
+            mass, volume, freezing, boiling, rho, cp, k, mu, h = self.egasp.props(
                 request.temperature,
                 request.concentration_type,
                 request.concentration_value
@@ -248,12 +252,14 @@ class ExcelIntegration:
             result = PropertyResult(
                 success=True,
                 error_code=ErrorCode.SUCCESS,
+                error_message=None,
                 mass_concentration=mass * 100 if mass is not None else None,
                 volume_concentration=volume * 100 if volume is not None else None,
                 freezing_point=freezing,
                 boiling_point=boiling,
                 density=rho,
                 specific_heat=cp,
+                enthalpy=h,
                 thermal_conductivity=k,
                 viscosity=mu,
                 execution_time_ms=(time.perf_counter() - start_time) * 1000
@@ -326,7 +332,7 @@ class ExcelIntegration:
             prop_fields = [
                 'mass_concentration', 'volume_concentration',
                 'freezing_point', 'boiling_point',
-                'density', 'specific_heat',
+                'density', 'specific_heat', 'enthalpy',
                 'thermal_conductivity', 'viscosity'
             ]
             
@@ -433,7 +439,7 @@ def excel_main():
     parser.add_argument('--temp', type=float, required=False,
                        help='温度值 (-35 ~ 125°C)')
     parser.add_argument('--prop', type=str, default='rho',
-                       help='物性参数 (rho/cp/k/mu/mass/volume/freezing/boiling), 默认: rho')
+                       help='物性参数 (rho/cp/h/k/mu/mass/volume/freezing/boiling), 默认: rho')
 
     # 批量模式参数
     parser.add_argument('--input', type=str, help='批量输入JSON文件路径')
@@ -530,7 +536,7 @@ def _handle_full_mode(integration: ExcelIntegration, args):
         # 静默模式输出所有值，制表符分隔
         values = []
         for field in ['mass_concentration', 'volume_concentration', 'freezing_point', 
-                     'boiling_point', 'density', 'specific_heat', 
+                     'boiling_point', 'density', 'specific_heat', 'enthalpy',
                      'thermal_conductivity', 'viscosity']:
             val = formatted.get(field, {}).get('value', '#N/A')
             values.append(str(val))
