@@ -66,6 +66,7 @@ def print_table(result: dict):
     table.add_row("体积浓度", " %", format_value(result['volume']*100, ".2f"), "比热容", "J/kg·K", format_value(result['cp'], ".2f"))
     table.add_row("冰点", "°C", format_value(result['freezing'], ".2f"), "导热率", "W/m·K", format_value(result['k'], ".4f"))
     table.add_row("沸点", "°C", format_value(result['boiling'], ".2f"), "粘度", "Pa·s", format_value(result['mu'], ".5f"))
+    table.add_row("焓值", "J/kg", format_value(result['h'], ".2f"), "", "", "")
 
     # 打印表格
     console.print(table)
@@ -94,14 +95,14 @@ def print_multi_temp_table(results: list, query_type: str):
     console.print(  Text("乙二醇水溶液多温度查询结果", style="bold dark_orange"), width=54, justify="center")
     
     # 打印表格分隔线（首行）
-    console.print(Text("  +-------+---------+---------+--------+------------+"))
+    console.print(Text("  +-------+---------+---------+--------+------------+------------+"))
     
     # 打印表头
-    header_line = f"  {'Temp':^9}{'Dens':^9}{'Cp':^11}{'Cond':^9}{'Visc':^13}"
+    header_line = f"  {'Temp':^9}{'Dens':^9}{'Cp':^11}{'Cond':^9}{'Visc':^13}{'Enthalpy':^13}"
     console.print(Text(header_line, style="bold dark_orange"))
-    units_line = f"  {'deg C':^9}{'kg/m3':^9}{'J/kg-K':^11}{'W/m-K':^9}{'Pa-s':^13}"
+    units_line = f"  {'deg C':^9}{'kg/m3':^9}{'J/kg-K':^11}{'W/m-K':^9}{'Pa-s':^13}{'J/kg':^13}"
     console.print(Text(units_line, style="red"))
-    console.print(Text("  +=======+=========+=========+========+============+"))
+    console.print(Text("  +=======+=========+=========+========+============+============+"))
     
     # 格式化值的函数
     def format_str(value, format_str):
@@ -117,9 +118,10 @@ def print_multi_temp_table(results: list, query_type: str):
             f"{format_str(res['cp'], '.2f'):^11}"
             f"{format_str(res['k'], '.4f'):^9}"
             f"{format_str(res['mu'], '.4e'):^13}"
+            f"{format_str(res['h'], '.2f'):^13}"
         )
         console.print(Text(data_line, style="green"))
-    console.print(Text("  +-------+---------+---------+--------+------------+"))
+    console.print(Text("  +-------+---------+---------+--------+------------+------------+"))
 
     # 打印固定属性 - 使用不同颜色区分，更紧凑
     console.print(Text(f" {output_conc_type}: ", style="cyan"), end="")
@@ -156,7 +158,7 @@ def cli_main():
         # 多温度查询
         results = []
         for temp in args.query_temp:
-            mass, volume, freezing, boiling, rho, cp, k, mu = eg.props(temp, args.query_type, args.query_value)
+            mass, volume, freezing, boiling, rho, cp, k, mu, h = eg.props(temp, args.query_type, args.query_value)
             results.append({
                 "temp": temp,
                 "mass": mass,
@@ -166,15 +168,16 @@ def cli_main():
                 "rho": rho,
                 "cp": cp,
                 "k": k,
-                "mu": mu
+                "mu": mu,
+                "h": h
             })
         print('-----+--------------------------------------------+-----')
         print_multi_temp_table(results, args.query_type)
     else:
         # 单温度查询
-        mass, volume, freezing, boiling, rho, cp, k, mu = eg.props(args.query_temp[0], args.query_type, args.query_value)
+        mass, volume, freezing, boiling, rho, cp, k, mu, h = eg.props(args.query_temp[0], args.query_type, args.query_value)
         print('-----+--------------------------------------------+-----\n')
-        result = {"mass": mass, "volume": volume, "freezing": freezing, "boiling": boiling, "rho": rho, "cp": cp, "k": k, "mu": mu}
+        result = {"mass": mass, "volume": volume, "freezing": freezing, "boiling": boiling, "rho": rho, "cp": cp, "k": k, "mu": mu, "h": h}
         print_table(result)
 
     # 检查更新（异步）
@@ -205,11 +208,11 @@ def input_main():
                 console.print(f"[red]输入格式错误: {str(e)}，请重新输入[/red]")
 
             # 获取计算结果（复用原有核心逻辑）
-            mass, volume, freezing, boiling, rho, cp, k, mu = eg.props(query_temp, query_type, query_value)
+            mass, volume, freezing, boiling, rho, cp, k, mu, h = eg.props(query_temp, query_type, query_value)
 
             # 打印结果表格
             print('-----+--------------------------------------------+-----\n')
-            result = {"mass": mass, "volume": volume, "freezing": freezing, "boiling": boiling, "rho": rho, "cp": cp, "k": k, "mu": mu}
+            result = {"mass": mass, "volume": volume, "freezing": freezing, "boiling": boiling, "rho": rho, "cp": cp, "k": k, "mu": mu, "h": h}
             print_table(result)
 
             # 检查更新（异步）
