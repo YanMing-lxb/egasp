@@ -15,21 +15,24 @@ _conc_nodes = [round(0.1 + i * 0.1, 1) for i in range(9)]
 # 类级别的numpy数据数组
 _rho_array = None
 _cp_array = None
+_h_array = None
 _k_array = None
 _mu_array = None
 _array_map = None
 
 def _init_class_data():
     """初始化类级别的数据数组"""
-    global _rho_array, _cp_array, _k_array, _mu_array, _array_map
+    global _rho_array, _cp_array, _h_array, _k_array, _mu_array, _array_map
     if _rho_array is None:
         _rho_array = np.array(EGP['rho'], dtype=np.float64)
         _cp_array = np.array(EGP['cp'], dtype=np.float64)
+        _h_array = np.array(EGP['h'], dtype=np.float64)
         _k_array = np.array(EGP['k'], dtype=np.float64)
         _mu_array = np.array(EGP['mu'], dtype=np.float64)
         _array_map = {
             'rho': _rho_array,
             'cp': _cp_array,
+            'h': _h_array,
             'k': _k_array,
             'mu': _mu_array
         }
@@ -113,6 +116,7 @@ class EGASP:
         self.conc_nodes = _conc_nodes
         self.rho_array = _rho_array
         self.cp_array = _cp_array
+        self.h_array = _h_array
         self.k_array = _k_array
         self.mu_array = _mu_array
         self.array_map = _array_map
@@ -125,6 +129,7 @@ class EGASP:
             'mass': '质量浓度',
             'rho': '密度',
             'cp': '比热容',
+            'h': '焓值',
             'k': '导热系数',
             'mu': '动力粘度'
         }
@@ -154,8 +159,8 @@ class EGASP:
 
     def prop(self, temp: float | np.ndarray, conc: float, egp_key: str) -> float | np.ndarray:
         """根据温度和浓度计算指定物性参数"""
-        if egp_key not in ['rho', 'cp', 'k', 'mu']:
-            self._error_exit(f"无效物性参数 {egp_key}，可选值: rho/cp/k/mu")
+        if egp_key not in ['rho', 'cp', 'h', 'k', 'mu']:
+            self._error_exit(f"无效物性参数 {egp_key}，可选值: rho/cp/h/k/mu")
 
         # 处理numpy数组输入 - 使用向量化
         if isinstance(temp, np.ndarray):
@@ -250,7 +255,8 @@ class EGASP:
         mass, volume, freezing, boiling = self.fb_props(query_value, query_type=query_type)
         rho = self.prop(temp=query_temp, conc=volume, egp_key='rho')
         cp = self.prop(temp=query_temp, conc=volume, egp_key='cp')
+        h = self.prop(temp=query_temp, conc=volume, egp_key='h')
         k = self.prop(temp=query_temp, conc=volume, egp_key='k')
         mu = self.prop(temp=query_temp, conc=volume, egp_key='mu')
 
-        return mass, volume, freezing, boiling, rho, cp, k, mu
+        return mass, volume, freezing, boiling, rho, cp, k, mu, h
