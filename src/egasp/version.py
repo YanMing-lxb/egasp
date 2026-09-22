@@ -16,16 +16,15 @@
  -----------------------------------------------------------------------
 Author       : 焱铭
 Date         : 2024-03-01 15:52:28 +0800
-LastEditTime : 2025-11-07 11:15:28 +0800
+LastEditTime : 2026-09-22 10:21:24 +0800
 Github       : https://github.com/YanMing-lxb/
 FilePath     : /egasp/src/egasp/version.py
 Description  : 
  -----------------------------------------------------------------------
 '''
 # -*- coding: utf-8 -*-
-#!/usr/bin/env python
 
 __project_name__ = 'egasp'
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 __author__ = '焱铭'
 __url__ = "https://github.com/YanMing-lxb"

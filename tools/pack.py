@@ -273,7 +273,7 @@ def main():
         console.print(f"✗ 子进程调用失败: {e}", style="error")
         console.print("命令执行中断，请检查依赖环境或系统资源", style="warning")
 
-    except IOError as e:
+    except OSError as e:
         console.print(f"✗ IO 错误: {e}", style="error")
         console.print("可能原因：磁盘空间不足、文件锁定或权限问题", style="warning")
 
@@ -285,7 +285,7 @@ def main():
         console.rule("[bold red]💥 发生未知异常！[/]")
         console.print_exception(show_locals=True)
         console.print(f"异常类型: {type(e).__name__}")
-        console.print(f"异常内容: {str(e)}")
+        console.print(f"异常内容: {e!s}")
         console.print("请联系开发者并附上以上异常信息以便排查问题", style="warning")
         sys.exit(1)
 

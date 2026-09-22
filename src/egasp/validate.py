@@ -24,6 +24,7 @@ Description  :
 '''
 import logging
 
+
 class Validate:
     def __init__(self):
         self.logger = logging.getLogger(__name__)

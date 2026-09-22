@@ -20,17 +20,12 @@ Description  : Excel/WPS表格集成模块 - 提供高性能、稳定的表格�
  -----------------------------------------------------------------------
 '''
 
-import os
-import sys
-import json
-import logging
 import argparse
-import tempfile
-from pathlib import Path
-from typing import Optional, List, Dict, Any, Union, Tuple
-from dataclasses import dataclass, asdict
+import json
+import sys
+from dataclasses import dataclass
 from enum import Enum
-from datetime import datetime
+from typing import Any
 
 from egasp.core import EGASP
 from egasp.logger_config import setup_logger
@@ -67,7 +62,7 @@ ERROR_MESSAGES = {
 }
 
 # 错误处理辅助函数
-def get_error_message(error_code: ErrorCode, details: str = None) -> str:
+def get_error_message(error_code: ErrorCode, details: str | None) -> str:
     """获取错误消息"""
     base_message = ERROR_MESSAGES.get(error_code, "未知错误")
     if details:
@@ -92,22 +87,22 @@ class PropertyResult:
     """物性参数结果"""
     success: bool
     error_code: ErrorCode
-    error_message: Optional[str] = None
-    mass_concentration: Optional[float] = None
-    volume_concentration: Optional[float] = None
-    freezing_point: Optional[float] = None
-    boiling_point: Optional[float] = None
-    density: Optional[float] = None
-    specific_heat: Optional[float] = None
-    thermal_conductivity: Optional[float] = None
-    viscosity: Optional[float] = None
+    error_message: str | None
+    mass_concentration: float | None
+    volume_concentration: float | None
+    freezing_point: float | None
+    boiling_point: float | None
+    density: float | None
+    specific_heat: float | None
+    thermal_conductivity: float | None
+    viscosity: float | None
     execution_time_ms: float = 0.0
 
 
 @dataclass
 class BatchRequest:
     """批量请求"""
-    requests: List[PropertyRequest]
+    requests: list[PropertyRequest]
     return_full_data: bool = False
 
 
@@ -115,7 +110,7 @@ class BatchRequest:
 class BatchResult:
     """批量结果"""
     success: bool
-    results: List[PropertyResult]
+    results: list[PropertyResult]
     total_count: int = 0
     success_count: int = 0
     error_count: int = 0
@@ -176,7 +171,7 @@ class ExcelIntegration:
         self._cache_hits = 0
         self._cache_misses = 0
 
-    def validate_request(self, request: PropertyRequest) -> Tuple[bool, ErrorCode, Optional[str]]:
+    def validate_request(self, request: PropertyRequest) -> tuple[bool, ErrorCode, str | None]:
         """
         验证请求参数
         
@@ -282,7 +277,7 @@ class ExcelIntegration:
                 execution_time_ms=(time.perf_counter() - start_time) * 1000
             )
 
-    def get_property_value(self, request: PropertyRequest) -> Optional[float]:
+    def get_property_value(self, request: PropertyRequest) -> float | None:
         """获取指定的单个物性值（简化接口）"""
         result = self.calculate_single(request)
         if not result.success:
@@ -323,7 +318,7 @@ class ExcelIntegration:
         )
 
     def format_result(self, result: PropertyResult, 
-                     include_metadata: bool = False) -> Dict[str, Any]:
+                     include_metadata: bool = False) -> dict[str, Any]:
         """格式化结果为字典"""
         data = {}
         
@@ -361,7 +356,7 @@ class ExcelIntegration:
         """生成缓存键"""
         return f"{request.concentration_type}:{request.concentration_value:.6f}:{request.temperature:.2f}"
 
-    def _check_cache(self, request: PropertyRequest) -> Optional[PropertyResult]:
+    def _check_cache(self, request: PropertyRequest) -> PropertyResult | None:
         """检查缓存"""
         cache_key = self._generate_cache_key(request)
         if cache_key in self._cache:
@@ -386,7 +381,7 @@ class ExcelIntegration:
         self._cache_hits = 0
         self._cache_misses = 0
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """获取性能统计信息"""
         avg_time = self._total_time_ms / self._total_calls if self._total_calls > 0 else 0
         cache_hit_rate = self._cache_hits / (self._cache_hits + self._cache_misses) * 100 if (self._cache_hits + self._cache_misses) > 0 else 0
@@ -469,7 +464,7 @@ def excel_main():
     except Exception as e:
         logger.exception(f"执行失败: {e}")
         if not args.quiet:
-            print(f"ERROR: {str(e)}", file=sys.stderr)
+            print(f"ERROR: {e!s}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -597,7 +592,7 @@ def _handle_batch_mode(integration: ExcelIntegration, args):
 # 便捷函数 - 直接从Python调用
 # ===========================================================================
 def get_property(concentration_type: str, concentration_value: float, 
-                temperature: float, property_name: str) -> Optional[float]:
+                temperature: float, property_name: str) -> float | None:
     """
     便捷函数：获取单个物性参数值
     
@@ -621,7 +616,7 @@ def get_property(concentration_type: str, concentration_value: float,
 
 
 def get_all_properties(concentration_type: str, concentration_value: float, 
-                      temperature: float) -> Optional[Dict[str, Any]]:
+                      temperature: float) -> dict[str, Any] | None:
     """
     便捷函数：获取所有物性参数
     

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
  =======================================================================
  ····Y88b···d88P················888b·····d888·d8b·······················
@@ -25,11 +24,11 @@ Description  : Excel/WPS 插件测试工具
  -----------------------------------------------------------------------
 """
 
-import os
+import subprocess
 import sys
 import time
-import subprocess
 from pathlib import Path
+
 from rich.console import Console
 from rich.theme import Theme
 
@@ -214,7 +213,7 @@ class PerformanceTester:
             
             start_time = time.time()
             try:
-                result = subprocess.run(
+                subprocess.run(
                     cmd,
                     capture_output=True,
                     text=True,

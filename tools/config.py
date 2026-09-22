@@ -1,12 +1,4 @@
 '''
-Author: YanMing-CX lxb-yanming@foxmail.com
-Date: 2026-04-04 18:44:47
-LastEditors: YanMing-CX lxb-yanming@foxmail.com
-LastEditTime: 2026-04-04 21:28:10
-FilePath: \egasp\tools\config.py
-Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
-'''
-'''
  =======================================================================
  ····Y88b···d88P················888b·····d888·d8b·······················
  ·····Y88b·d88P·················8888b···d8888·Y8P·······················
@@ -24,7 +16,7 @@ Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查�
  -----------------------------------------------------------------------
 Author       : 焱铭
 Date         : 2025-11-06 20:58:22 +0800
-LastEditTime : 2025-11-06 22:14:25 +0800
+LastEditTime : 2026-09-22 10:47:24 +0800
 Github       : https://github.com/YanMing-lxb/
 FilePath     : /egasp/tools/config.py
 Description  : 

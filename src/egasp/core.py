@@ -1,13 +1,12 @@
+import bisect
 import logging
 import sys
-import bisect
-from typing import Tuple, Union, Optional
 from functools import lru_cache
+
 import numpy as np
 
 from egasp.data.egasp_data import EGP
 from egasp.validate import Validate
-
 
 # 类级别的缓存数据
 _temp_nodes = list(range(-35, 126, 5))
@@ -37,7 +36,7 @@ def _init_class_data():
 
 
 @lru_cache(maxsize=1024)
-def _cached_prop_single(temp: float, conc: float, egp_key: str) -> Optional[float]:
+def _cached_prop_single(temp: float, conc: float, egp_key: str) -> float | None:
     """缓存的单个温度和浓度值计算（静态函数，避免内存泄漏）"""
     _init_class_data()
     
@@ -85,7 +84,7 @@ def _interpolate_linear_static(x1: float, y1: float, x2: float, y2: float, x: fl
         raise RuntimeError(f"插值节点间距为零 x1={x1}, x2={x2}")
 
 
-def _find_nearest_nodes_static(nodes: list, value: float, name: str) -> Tuple[int, int]:
+def _find_nearest_nodes_static(nodes: list, value: float, name: str) -> tuple[int, int]:
     """静态查找目标值在节点序列中的相邻节点索引"""
     try:
         idx = bisect.bisect_right(nodes, value) - 1
@@ -97,7 +96,7 @@ def _find_nearest_nodes_static(nodes: list, value: float, name: str) -> Tuple[in
 
         return lower_idx, upper_idx
     except IndexError as e:
-        raise RuntimeError(f"节点索引错误: {str(e)}")
+        raise RuntimeError(f"节点索引错误: {e!s}")
 
 
 class EGASP:
@@ -140,20 +139,20 @@ class EGASP:
         """执行线性插值计算"""
         return _interpolate_linear_static(x1, y1, x2, y2, x)
 
-    def _error_exit(self, msg: str = None) -> None:
+    def _error_exit(self, msg: str | None = None) -> None:
         """记录错误信息并终止程序执行"""
         if msg:
             self.logger.error(msg)
         sys.exit()
 
-    def _find_nearest_nodes(self, nodes: list, value: float, name: str) -> Tuple[int, int]:
+    def _find_nearest_nodes(self, nodes: list, value: float, name: str) -> tuple[int, int]:
         """查找目标值在节点序列中的相邻节点索引"""
         try:
             return _find_nearest_nodes_static(nodes, value, name)
         except (ValueError, RuntimeError) as e:
             self._error_exit(str(e))
 
-    def prop(self, temp: Union[float, np.ndarray], conc: float, egp_key: str) -> Union[float, np.ndarray]:
+    def prop(self, temp: float | np.ndarray, conc: float, egp_key: str) -> float | np.ndarray:
         """根据温度和浓度计算指定物性参数"""
         if egp_key not in ['rho', 'cp', 'k', 'mu']:
             self._error_exit(f"无效物性参数 {egp_key}，可选值: rho/cp/k/mu")
@@ -186,7 +185,7 @@ class EGASP:
         if np.isnan(v12) or np.isnan(v22):
             self.logger.warning(f"数据库在体积浓度 {self.conc_nodes[c_upper_idx]} 下，温度 {self.temp_nodes[t_lower_idx]} ~ {self.temp_nodes[t_upper_idx]} 的范围内[red]{self.concentration_type_to_chinese(egp_key)}[/red]数据缺失")
 
-    def fb_props(self, query: float, query_type: str = 'volume') -> Tuple[Optional[float], Optional[float], Optional[float], Optional[float]]:
+    def fb_props(self, query: float, query_type: str = 'volume') -> tuple[float | None, float | None, float | None, float | None]:
         """根据浓度查询冰点和沸点相关物性参数"""
         if query_type not in ['mass', 'volume']:
             self._error_exit(f"无效查询类型 {query_type}，必须为 'mass' 或 'volume'")
@@ -210,7 +209,7 @@ class EGASP:
             if not (p_val <= query <= c_val):
                 self._error_exit(f"浓度 {query} 不在相邻数据点之间 [{p_val}, {c_val}]")
         except Exception as e:
-            self._error_exit(f"数据查询失败: {str(e)}")
+            self._error_exit(f"数据查询失败: {e!s}")
 
         # 解包数据
         m1, v1, f1, b1 = prev

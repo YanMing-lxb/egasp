@@ -16,7 +16,7 @@
  -----------------------------------------------------------------------
 Author       : 焱铭
 Date         : 2025-04-22 10:43:55 +0800
-LastEditTime : 2025-11-06 22:50:26 +0800
+LastEditTime : 2026-09-22 10:20:41 +0800
 Github       : https://github.com/YanMing-lxb/
 FilePath     : /egasp/src/egasp/logger_config.py
 Description  : 
@@ -24,9 +24,8 @@ Description  :
 '''
 
 import logging
+
 from rich.logging import RichHandler  # 导入rich库的日志处理模块
-
-
 
 
 # --------------------------------------------------------------------------------

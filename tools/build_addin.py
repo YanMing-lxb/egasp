@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
  =======================================================================
  ····Y88b···d88P················888b·····d888·d8b·······················
@@ -26,10 +25,9 @@ Description  : 纯VBA Excel加载项构建工具 - 创建.xlam文件
 """
 
 import shutil
-import subprocess
-import os
 import sys
 from pathlib import Path
+
 from rich.console import Console
 from rich.theme import Theme
 

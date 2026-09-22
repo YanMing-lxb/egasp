@@ -1,17 +1,17 @@
 import json
-import time
-import threading
-import toml
 import logging
+import threading
+import time
 import urllib.request
-from rich import print
-from pathlib import Path
-from packaging import version
 from datetime import timedelta
+from pathlib import Path
+
+import toml
+from packaging import version
 from platformdirs import user_cache_dir
+from rich import print
 
 from egasp.version import __project_name__, __version__
-
 
 API_URL = f"https://api.github.com/repos/YanMing-lxb/{__project_name__}/releases/latest"
 
@@ -93,7 +93,7 @@ class UpdateChecker:
         except KeyError:
             self.logger.error("响应中缺少版本信息")
         except Exception as e:
-            self.logger.error(f"获取GitHub版本失败：{str(e)}")
+            self.logger.error(f"获取GitHub版本失败：{e!s}")
         finally:
             self.logger.info(f"请求耗时：{time.time()-start_time} 秒")
         

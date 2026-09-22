@@ -28,10 +28,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from utils import console, run_command
-
 from config import __version__
-
+from utils import console, run_command
 
 
 def inswhl():

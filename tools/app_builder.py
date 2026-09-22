@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
  =======================================================================
  ····Y88b···d88P················888b·····d888·d8b·······················
@@ -25,11 +24,11 @@ Description  : 完整应用构建器
  -----------------------------------------------------------------------
 """
 
-import sys
 import shutil
+import sys
 from pathlib import Path
 
-from utils import console, PerformanceTracker
+from utils import PerformanceTracker, console
 
 if sys.stdout.encoding != "UTF-8":
     sys.stdout.reconfigure(encoding="utf-8")
@@ -343,7 +342,6 @@ class BuildManager:
         except Exception as e:
             print_error(f"整合README文件失败: {e}")
             # 即使失败也继续，因为README不是关键文件
-            pass
 
         # 7. 创建7z包
         print_step("7. 创建7z包")
@@ -419,7 +417,7 @@ class BuildManager:
                 "-t7z",  # 使用7z格式
                 "-mx=9",  # 最大压缩级别
                 str(zip_path),
-                str(output_dir) + "\*",
+                str(output_dir) + r"\*",
             ]
 
             # 执行7zip命令
