@@ -14,9 +14,9 @@ dependencies = [
     "rich>=14.0.0",
     "rich-argparse>=1.7.2",
     "toml>=0.10.2",
-    "packaging>=25.0",
-    "platformdirs>=4.3.8",
-    "numpy>=2.0.2",
+    "packaging>=26.3",
+    "platformdirs>=4.11.12",
+    "numpy>=2.5.3",
 ]
 
 readme = "README.md"
@@ -28,10 +28,8 @@ classifiers = [
     "Intended Audience :: End Users/Desktop",
     "Intended Audience :: Education",
     "Intended Audience :: Science/Research",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent",
 ]
 
@@ -59,8 +57,8 @@ egasp = ["locale/en/LC_MESSAGES/*.mo"]
 
 [dependency-groups]
 dev = [
-    "pyinstaller>=6.14.2",
+    "pyinstaller>=6.22.3",
     "pyyaml>=6.0.3",
-    "setuptools>=80.9.0",
+    "setuptools>=84.0.0",
 ]
 excel = ["pywin32>=305; sys_platform == 'win32'"]
