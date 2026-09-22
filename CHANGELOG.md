@@ -19,7 +19,7 @@
  *  -----------------------------------------------------------------------
  * Author       : 焱铭
  * Date         : 2025-04-24 12:30:56 +0800
- * LastEditTime : 2026-05-14 10:00:00 +0800
+ * LastEditTime : 2026-09-22 15:57:33 +0800
  * Github       : https://github.com/YanMing-lxb/
  * FilePath     : /egasp/CHANGELOG.md
  * Description  : 
@@ -43,6 +43,27 @@
 ### 其他
 - 新增 CHANGELOG.md 文件，用于记录版本更新日志。
  -->
+
+## v0.2.2
+
+### ✨ 新增功能
+- **焓值（h）查询支持**：EGASP 新增第 5 个可查询物性参数「焓值」（单位 J/kg），数据覆盖温度 -35 ~ 125°C、体积浓度 0.1 ~ 0.9
+- **`prop()` 接口扩展**：`egp_key` 新增可选值 `'h'`，支持单温度和 numpy 数组两种查询模式
+- **`props()` 接口扩展**：返回元组新增第 9 个元素焓值，完整顺序为 `(mass, volume, freezing, boiling, rho, cp, k, mu, h)`
+- **CLI 单温度表格**：新增焓值行，显示单位 J/kg
+- **CLI 多温度表格**：新增 Enthalpy 列，数值格式化宽度适配焓值量级（0 ~ 500,000）
+- **Excel 集成单属性查询**：`--prop` 新增支持 `h` 和别名 `enthalpy`
+- **Excel 集成完整数据查询**：`--full` 模式 JSON 输出新增 `enthalpy` 字段及单位 `J/kg`
+
+### ♻️ 重构与优化
+- **数据注册管线**：焓值数据 `eg_h` 通过 `EGP` 字典、`_init_class_data()`、`_array_map` 完整接入现有物性查询管线，复用双线性插值与 LRU 缓存
+- **焓值中文映射**：`concentration_type_to_chinese()` 新增 `'h' → '焓值'`，数据缺失警告日志中焓值名称显示正确
+- **PropertyResult dataclass 扩展**：`enthalpy: float | None` 字段按物性参数逻辑顺序插入（specific_heat 之后、thermal_conductivity 之前）
+- **向后兼容性验证**：使用 git stash 对比确认修改前后 rho/cp/k/mu 四种物性返回值完全一致
+
+### 📝 文档完善
+- `excel_integration.py` 中 `PROPERTY_MAP` / `UNIT_MAP` / `ERROR_MESSAGES` / `argparse` 帮助文本同步更新 h 相关提示
+
 
 ## v0.2.0
 
