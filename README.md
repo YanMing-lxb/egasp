@@ -185,6 +185,7 @@ pip3 install --upgrade egasp
 =EG_MU("mass", 0.3, 10)   // 获取质量浓度 30%、温度 10°C 时的粘度
 =EG_CP("volume", 0.6, 30)  // 获取体积浓度 60%、温度 30°C 时的比热容
 =EG_K("volume", 0.4, 50)  // 获取体积浓度 40%、温度 50°C 时的导热系数
+=EG_H("volume", 0.5, 60)  // 获取体积浓度 50%、温度 60°C 时的焓值 (J/kg，相对值)
 =EG_TF("mass", 0.7)  // 获取质量浓度 70% 时的冰点
 =EG_TB("volume", 0.3)  // 获取体积浓度 30% 时的沸点
 ```
@@ -246,6 +247,9 @@ pip3 install --upgrade egasp
 
 // E列：粘度
 =EG_MU("volume", 0.5, A2)
+
+// F列：焓值（相对值，同一浓度下可直接取焓差算热量）
+=EG_H("volume", 0.5, A2)
 ```
 
 ### 支持的函数
@@ -258,6 +262,7 @@ pip3 install --upgrade egasp
 | `EG_MU` | 获取粘度 | type, value, temp |
 | `EG_CP` | 获取比热容 | type, value, temp |
 | `EG_K` | 获取导热系数 | type, value, temp |
+| `EG_H` | 获取焓值 (J/kg，相对值，以各浓度参考温度为零点) | type, value, temp |
 | `EG_TF` | 获取冰点 | type, value |
 | `EG_TB` | 获取沸点 | type, value |
 | `EG_MASS` | 计算质量浓度 | type, value, temp |
@@ -276,6 +281,7 @@ pip3 install --upgrade egasp
   - `mu` 或 `viscosity`：粘度
   - `cp` 或 `specific_heat`：比热容
   - `k` 或 `thermal_conductivity`：导热系数
+  - `h` 或 `enthalpy`：焓值（相对值，J/kg，由比热容梯形法积分换算）
   - `freezing` 或 `freezing_point`：冰点
   - `boiling` 或 `boiling_point`：沸点
   - `mass` 或 `mass_concentration`：质量浓度
