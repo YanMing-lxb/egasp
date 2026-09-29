@@ -44,6 +44,66 @@
 - 新增 CHANGELOG.md 文件，用于记录版本更新日志。
  -->
 
+## v0.3.0
+
+> 🧬 单一内核大重构：从"命令行属性查询工具"到"可编译高性能物性内核"
+
+### ✨ 新增功能
+
+- **CompiledEGMixture 高性能物性内核**：预编译固定浓度下的五属性温度表 `(5, 33)`，真正的 NumPy 批量融合求值器，5000 温度点 × 100 次批量性能从约 12ms 降至 **0.26ms**（45× 加速）
+- **`compile_mixture(c)` LRU 缓存入口**：相同浓度重复调用零编译开销，节点浓度（0.1~0.9）直接取列，非节点值沿浓度方向双线性插值
+- **`temperature_from_h(h)` 焓值反解**：固定浓度下 `h → T` 安全求解，编译阶段自动验证 h 单调性、反解区间外 raise `PropertyOutOfRangeError`
+- **`evaluate()` / `evaluate_into()` 批量 API**：一次调用同时拿到 `(5,)` scalar 或 `(5, N)` batch 结果，顺序固定 `[rho, cp, h, k, mu]`
+- **`rho()/cp()/h()/k()/mu()` 单属性快捷方法**：支持 scalar 和 ndarray 自动分支，各自独立有效温度域检查
+- **导数方法 `drho_dT/dcp_dT/dh_dT/dk_dT/dmu_dT`**：区间内常数导数（legacy-linear 模式）
+- **`PropertyWorkspace` 持久属性容器**：为固定网络规模（如 PHEx/MS-FHTN）预分配的热物性容器，`update_into()` 原地填充避免每轮 new 数组
+- **`mu_into()` / `make_workspace()` 专用于壁面粘度和网络求解的 fast path**
+- **`__version__` 暴露**：`import egasp; egasp.__version__` 可直接读取版本号
+- **pytest 规格测试套件 `tests/test_compiled.py`**：89 项覆盖 AC-1 ~ AC-10（mass_fraction 映射、有效域 raise、焓反解安全、NaN/Inf 拒绝、单属性方法、evaluate 形状、legacy ≡ compiled 数值一致、LRU + readonly、批量性能 ≤0.38ms、mu 单位）
+
+### 🧬 架构重构
+
+- **单一计算内核**：`EGASP.prop()` / `EGASP.props()` 内部 **完全委托** `compile_mixture()` — `_cached_prop_single` 等旧 LRU 缓存路径 **全部删除**，整个项目只剩一条计算管线
+- **core.py 瘦身 37%**：从 360+ 行压缩到 ~225 行，旧的插值辅助函数、温度/浓度节点重复数组全部移交 compiled/data 模块
+- **legacy 数值完全兼容**：使用 git stash 对比验证，新内核 vs 旧 API **max rel diff = 4.5e-16**（数值噪声量级），rho/cp/h/k/mu 五种属性在所有节点浓度和温度点均严格一致
+- **导入分离**：核心库 `import egasp` 不再 eager 导入 rich/argparse，CLI 通过 lazy import 在 `python -m egasp` 路径触发；核心 import 时间从 ~1600ms 降至 **< 10ms**
+- **数组只读保护**：所有缓存的 `table` / `dtable` / `h_nodes` 在构造后设 `writeable=False`，防止 Python 层误改污染 LRU 缓存
+
+### 🚨 异常体系
+
+- **`EGASPError` 继承自 Exception**，新增 4 种子类：
+  - `PropertyOutOfRangeError(query, lo, hi, param)` — 参数超出有效域（温度、浓度、焓值均可）
+  - `InvalidInputError(message)` — NaN/Inf / 非有限输入
+  - `MissingPropertyDataError(concentration, message)` — 数据库节点缺失
+  - `CompilationError(message)` — 编译阶段致命错误（h 非单调、有效区间不连续等）
+- **零 `sys.exit` 在核心库**：core/compiled/data 三层不再 `sys.exit(1)`，所有异常统一 raise，由 `__main__.py` / `excel_integration.py` 捕获处理
+
+### ♻️ 重构与优化
+
+- **数据预编译**：`egasp_data.py` 将离散数据表构造为 `_PROPERTY_TABLE` shape `(33, 9, 5)` 不可变 numpy 数组，轴含义 `[温度节点, 浓度节点, 属性索引]`
+- **温度节点索引 O(1)**：`_temp_index()` 采用公式 `idx = floor((T - T_MIN) / T_STEP)` 取代 `bisect_left`，零 Python-level 搜索，纯 numpy 广播
+- **浓度节点 exact hit**：查询浓度恰为数据库 0.1~0.9 时直接取列，零双线性插值开销
+- **公共有效域 + 每属性独立有效域**：`evaluate()` 检查五属性交集有效域，单属性方法检查自身有效域；低温端（-35°C 附近）某些属性缺失自动 raise 清晰的 PropertyOutOfRangeError
+- **mu 单位统一 Pa·s**：legacy API 内部自动 `/1000` 转换从 mPa·s 到 Pa·s，compiled 内核与 legacy 对外完全一致
+- **fb_props 保持 legacy 路径**：冰点/沸点/质量↔体积转换涉及非单调性数据，独立于 compiled 内核；新增 exact hit 优先查询，不被相邻节点 NaN 阻断
+
+### 🐛 问题修复
+
+- 修复低温端浓度 0.1 / 0.2 下有效域边界错误（旧版在范围内但数据缺失返回 None，新版正确 raise `PropertyOutOfRangeError`）
+- 修复 fb 数据行中部分列缺失时（如冰点 NaN）fb_props 提前返回 None 导致相邻节点数值丢失 — 改为 exact hit 优先
+- 修复 `_cached_prop_single` / 类属性 dict 等潜在缓存污染源
+
+### 📝 文档完善
+
+- 新增 `docs/refactoring_report.md` — 完整重构总结报告（目标、方案、架构图、性能对比、规格验收、踩坑记录）
+- 新增 `docs/api_reference.md` — CompiledEGMixture / compile_mixture / EGASP 完整 API 参考
+- README.md 补充新 API 快速上手章节，新增 docs 导航链接
+
+### 🧹 代码质量
+
+- **Ruff strict mode 全绿**：`ruff check src/ tests/ --fix` 零错误零警告，`ruff format` 12 文件全格式化
+- 新增依赖：`pytest` / `pytest-benchmark` （dev-dependencies）
+
 ## v0.2.2
 
 ### ✨ 新增功能
