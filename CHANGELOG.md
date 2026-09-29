@@ -44,6 +44,19 @@
 - 新增 CHANGELOG.md 文件，用于记录版本更新日志。
  -->
 
+## v0.3.1
+
+> ⚡ patch 级优化：单属性 fast path 语义收紧 + Workspace 零分配热路径
+
+### ♻️ 重构与优化
+
+- **`mu_into()` 语义对齐**：壁面粘度 fast path 从检查五物性**公共有效域**改为检查 **mu 自身独立有效域**。即只算 μ 时，不应因 k 在某温度缺失而失败 — 与 `cm.mu(T)` / `_single_eval()` 行为完全一致
+- **`PropertyWorkspace.update_into()` 零分配**：新增 `_temp_index_into()` 直接写入 ws.idx / ws.w，消除 `idx` / `w` 临时数组；五属性改为逐属性 `_write_prop()` 调用，避免 fused `(5, N)` 中间数组，热路径堆分配归零
+
+### 🧹 代码质量
+
+- Ruff strict mode 全绿，89 项 pytest 规格测试全部通过
+
 ## v0.3.0
 
 > 🧬 单一内核大重构：从"命令行属性查询工具"到"可编译高性能物性内核"
