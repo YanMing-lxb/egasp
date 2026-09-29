@@ -37,6 +37,75 @@
 pip3 install egasp
 ```
 
+## v0.3.0 新 API 快速上手
+
+> EGASP 在 v0.3.0 引入了全新的高性能物性内核 — `compile_mixture()` + `CompiledEGMixture`，面向热网络求解器、批量数组计算等场景。legacy API（`prop()` / `props()`）数值兼容 100% 委托新内核。
+
+### 批量数组求值（推荐）
+
+```python
+import numpy as np
+from egasp import compile_mixture
+
+# 一次性编译固定浓度的物性表（LRU 缓存，重复调用零开销）
+cm = compile_mixture(0.5)   # 体积浓度 50%
+
+# 5000 温度点一次拿到五属性 → (5, 5000)，0.26 ms 完成
+temps = np.linspace(-30, 120, 5000)
+rho, cp, h, k, mu = cm.evaluate(temps)
+
+# 单属性快捷方法（各自独立有效域）
+rho_arr = cm.rho(temps)
+mu_arr  = cm.mu(temps)      # 单位 Pa·s
+
+# 焓值反解（h → T）
+T_back = cm.temperature_from_h(191045.0)   # ≈ 25.0°C
+
+# 热网络求解器：预分配 + 原地写入
+ws = cm.make_workspace(n_edges=5000)
+for iteration in range(10000):
+    cm.update_into(T_iter, ws)   # ws.rho / ws.h / ... 原地更新
+```
+
+### Legacy API 兼容
+
+```python
+import egasp
+
+eg = egasp.EGASP()
+rho = eg.prop(25.0, 0.5, "rho")          # 完全委托新内核
+rho_arr = eg.prop(np.array([20, 30, 40]), 0.5, "rho")
+mass, vol, freez, boil, rho, cp, k, mu, h = eg.props(25.0, "volume", 0.5)
+# legacy vs compiled max rel diff ≤ 4.5e-16
+```
+
+### 异常处理
+
+新内核在数据缺失 / 超范围 / NaN 时 **raise 明确异常**（不再 `sys.exit` 或返回 None）：
+
+```python
+try:
+    cm = compile_mixture(0.05)          # 浓度越界
+except egasp.PropertyOutOfRangeError as e:
+    print(f"浓度 {e.query} 超出 [{e.lo}, {e.hi}]")
+
+try:
+    cm.evaluate(np.nan)
+except egasp.InvalidInputError:
+    print("温度含 NaN")
+```
+
+### 性能
+
+| 场景 | 耗时 |
+|---|---|
+| `import egasp` | **< 10 ms** |
+| `compile_mixture(0.5)` 首次 | ~2-5 ms |
+| `compile_mixture(0.5)` 再次（LRU） | < 1 μs |
+| `evaluate(5000 温度点)` × 100 次 | **0.26 ms avg** |
+
+> 完整 API 参考见 [docs/api_reference.md](docs/api_reference.md)；重构技术细节见 [docs/refactoring_report.md](docs/refactoring_report.md)。
+
 ## 命令行使用
 
 ### 基本用法
@@ -350,6 +419,14 @@ pip3 install --upgrade egasp
 ### 性能统计
 
 通过功能区中的 `性能统计` 按钮可以查看缓存状态和使用情况。
+
+## 文档
+
+| 文档 | 说明 |
+|---|---|
+| [API 参考](docs/api_reference.md) | `compile_mixture()` / `CompiledEGMixture` / `EGASP` 完整公开 API 参考 |
+| [重构总结报告](docs/refactoring_report.md) | v0.3.0 单一内核重构 — 背景、方案、架构、性能、验收、踩坑 |
+| [CHANGELOG](CHANGELOG.md) | 版本更新日志 |
 
 ## 常见问题
 
