@@ -1,53 +1,63 @@
-'''
- =======================================================================
- ····Y88b···d88P················888b·····d888·d8b·······················
- ·····Y88b·d88P·················8888b···d8888·Y8P·······················
- ······Y88o88P··················88888b·d88888···························
- ·······Y888P··8888b···88888b···888Y88888P888·888·88888b·····d88b·······
- ········888······"88b·888·"88b·888·Y888P·888·888·888·"88b·d88P"88b·····
- ········888···d888888·888··888·888··Y8P··888·888·888··888·888··888·····
- ········888··888··888·888··888·888···"···888·888·888··888·Y88b·888·····
- ········888··"Y888888·888··888·888·······888·888·888··888··"Y88888·····
- ·······························································888·····
- ··························································Y8b·d88P·····
- ···························································"Y88P"······
- =======================================================================
+"""输入规范化与校验 — 纯函数，零 logger 依赖。"""
 
- -----------------------------------------------------------------------
-Author       : 焱铭
-Date         : 2025-04-22 12:43:54 +0800
-LastEditTime : 2025-04-29 17:37:32 +0800
-Github       : https://github.com/YanMing-lxb/
-FilePath     : /egasp/src/egasp/validate.py
-Description  : 
- -----------------------------------------------------------------------
-'''
-import logging
+from __future__ import annotations
+
+from typing import Final
+
+from egasp.exceptions import InvalidInputError, PropertyOutOfRangeError
+
+_VALID_TYPES: Final[dict[str, str]] = {
+    "volume": "volume",
+    "v": "volume",
+    "mass": "mass",
+    "m": "mass",
+}
+
+_PROP_KEY_MAP: Final[dict[str, str]] = {
+    "rho": "rho",
+    "cp": "cp",
+    "h": "h",
+    "k": "k",
+    "mu": "mu",
+}
 
 
-class Validate:
-    def __init__(self):
-        self.logger = logging.getLogger(__name__)
-    def type_value(self, query_type:str, default_value:str='volume')->str:
-        if query_type in ['volume', 'v', 'mass', 'm', '']:
-            if query_type == '':
-                self.logger.info(f"未输入查询类型，将使用默认类型 {default_value}")
-                return default_value
-            if query_type == 'v':
-                return 'volume'
-            if query_type == 'm':
-                return 'mass'
-            return query_type
-        else:
-            self.logger.warning(f"无效查询类型，将使用默认值 {default_value}")
-            return default_value
-    def input_value(self, value, min_val=None, max_val=None):
-        try:
-            if min_val is not None and value < min_val:
-                self.logger.warning(f"输入值不能小于 {min_val}，请重新输入。")
-            if max_val is not None and value > max_val:
-                self.logger.warning(f"输入值不能大于 {max_val}，请重新输入。")
-            return value
-        except ValueError:
-            self.logger.warning("请输入有效的数字，请重新输入。")
+def normalize_query_type(query_type: str, default: str = "volume") -> str:
+    """将 CLI/用户输入的查询类型规范化为 'volume' / 'mass'。
 
+    空字符串或合法别名返回规范化值；非法值 raise InvalidInputError。
+    """
+    if query_type == "":
+        return default
+    key = query_type.lower()
+    if key not in _VALID_TYPES:
+        raise InvalidInputError(
+            f"无效查询类型 '{query_type}'，支持的值: volume/v/mass/m"
+        )
+    return _VALID_TYPES[key]
+
+
+def validate_prop_key(key: str) -> str:
+    """规范化物性 key；非法值 raise InvalidInputError。"""
+    if key not in _PROP_KEY_MAP:
+        raise InvalidInputError(f"无效物性参数 '{key}'，可选值: rho/cp/h/k/mu")
+    return _PROP_KEY_MAP[key]
+
+
+def clamp_or_raise(
+    value: float,
+    lo: float,
+    hi: float,
+    *,
+    param: str = "value",
+    raise_on_out_of_range: bool = True,
+) -> float:
+    """检查 value ∈ [lo, hi]，超范围默认 raise PropertyOutOfRangeError。
+
+    raise_on_out_of_range=False 时改为 silent clamp（仅用于极少数 legacy 场景）。
+    """
+    if value < lo or value > hi:
+        if raise_on_out_of_range:
+            raise PropertyOutOfRangeError(value, lo, hi, param=param)
+        return min(max(value, lo), hi)
+    return value
