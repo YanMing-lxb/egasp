@@ -1,20 +1,48 @@
-'''
-一款用于获取乙二醇水溶液物性参数的工具
-可用函数 props()
-'''
+"""egasp 库级入口 — 轻量，仅导入 numpy/data/core/compiled。
 
-import sys
-from .core import EGASP
+CLI 入口通过 ``python -m egasp`` 触发（即 ``__main__.py``），不在本文件 eager 导入。
+这样 ``import egasp`` 的启动时间从 ~1.6s 降到 <100ms。
+"""
 
-# 实例化核心类
-eg = EGASP()
+from egasp.compiled import CompiledEGMixture, PropertyWorkspace, compile_mixture
+from egasp.core import EGASP
+from egasp.exceptions import (
+    CompilationError,
+    EGASPError,
+    InvalidInputError,
+    MissingPropertyDataError,
+    PropertyOutOfRangeError,
+)
 
-# 将指定方法暴露为模块级别的函数
-prop = eg.prop
-props = eg.props  # 直接暴露 props 函数
+# 模块级兼容单例 — 供 CLI / Excel / 脚本使用
+_eg = EGASP()
+prop = _eg.prop
+props = _eg.props
+fb_props = _eg.fb_props
+concentration_type_to_chinese = EGASP.concentration_type_to_chinese
 
-if sys.version_info[0] == 3:
-    from .__main__ import main  # 显式导出 main() 供 CLI 入口使用
-else:
-    # Don't import anything.
-    pass
+
+def main() -> None:
+    """CLI 入口 — lazy import __main__，避免核心 import 路径携带 rich/argparse。"""
+    from egasp.__main__ import main as _cli_main
+
+    _cli_main()
+
+
+__all__ = [
+    # 旧 API 兼容
+    "EGASP",
+    "CompilationError",
+    "CompiledEGMixture",
+    "EGASPError",
+    "InvalidInputError",
+    "MissingPropertyDataError",
+    "PropertyOutOfRangeError",
+    "PropertyWorkspace",
+    "compile_mixture",
+    "concentration_type_to_chinese",
+    "fb_props",
+    "main",
+    "prop",
+    "props",
+]
