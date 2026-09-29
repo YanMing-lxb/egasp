@@ -1,6 +1,6 @@
 # EGASP API 参考
 
-> 版本 0.3.0 · 最后更新 2026-09-29
+> 版本 0.3.1 · 最后更新 2026-09-29
 
 本页是 EGASP 公开 API 的完整参考。库从 v0.3.0 起将 EGASP 分为两个并行层级：
 
@@ -21,13 +21,13 @@ uv add egasp
 
 ```python
 import egasp
-print(egasp.__version__)  # "0.3.0"
+print(egasp.__version__)  # "0.3.1"
 ```
 
 ### 可用属性
 
 ```python
-egasp.__version__                   # str: "0.3.0"
+egasp.__version__                   # str: "0.3.1"
 egasp.compile_mixture(c)            # LRU 入口
 egasp.CompiledEGMixture             # dataclass
 egasp.PropertyWorkspace            # 持久容器
