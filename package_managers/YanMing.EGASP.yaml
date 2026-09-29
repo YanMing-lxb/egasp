@@ -13,7 +13,7 @@ Installers:
     Silent: -s
     SilentWithProgress: -sp
   InstallerType: 7z
-  InstallerUrl: https://github.com/YanMing-lxb/egasp/releases/download/v0.2.0/egasp-v0.2.0.7z
+  InstallerUrl: https://github.com/YanMing-lxb/egasp/releases/download/v0.3.1/egasp-v0.3.1.7z
 License: MIT
 LicenseUrl: https://github.com/YanMing-lxb/egasp/blob/main/LICENSE
 ManifestType: singleton
@@ -22,7 +22,7 @@ Moniker: egasp
 PackageIdentifier: YanMing.EGASP
 PackageName: EGASP
 PackageUrl: https://github.com/YanMing-lxb/egasp
-PackageVersion: 0.2.0
+PackageVersion: 0.3.1
 PostInstallCommands:
 - Command: echo [EGASP] 安装完成！可执行文件已添加到系统PATH
   Description: 显示安装完成信息
@@ -38,8 +38,8 @@ PostInstallCommands:
 Publisher: YanMing
 PublisherSupportUrl: https://github.com/YanMing-lxb/egasp/issues
 PublisherUrl: https://github.com/YanMing-lxb
-ReleaseNotes: https://github.com/YanMing-lxb/egasp/releases/tag/v0.2.0
-ReleaseNotesUrl: https://github.com/YanMing-lxb/egasp/releases/tag/v0.2.0
+ReleaseNotes: https://github.com/YanMing-lxb/egasp/releases/tag/v0.3.1
+ReleaseNotesUrl: https://github.com/YanMing-lxb/egasp/releases/tag/v0.3.1
 ShortDescription: 乙二醇水溶液属性查询程序
 Tags:
 - egasp
