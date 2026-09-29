@@ -143,9 +143,9 @@ class CompiledEGMixture:
         return self._single_eval(T, _PROP_IDX_MU)
 
     def mu_into(self, T: np.ndarray, out: np.ndarray) -> None:
-        """壁面粘度专用 fast path — 只计算 mu（检查公共域）。"""
+        """壁面粘度专用 fast path — 只计算 mu（检查 mu 独立有效域）。"""
         T_arr = np.asarray(T, dtype=np.float64).ravel()
-        self._check_range_common(T_arr)
+        self._check_range_prop(T_arr, _PROP_IDX_MU)
         idx, w = self._temp_index(T_arr)
         lo = self.table[_PROP_IDX_MU, idx]
         hi = self.table[_PROP_IDX_MU, idx + 1]
@@ -247,23 +247,24 @@ class CompiledEGMixture:
         )
 
     def update_into(self, T: np.ndarray, ws: PropertyWorkspace) -> None:
-        """原地更新 workspace 的所有字段。"""
+        """原地更新 workspace 的所有字段 — 零分配热路径。"""
         T_arr = np.asarray(T, dtype=np.float64).ravel()
         self._check_range_common(T_arr)
-        idx, w = self._temp_index(T_arr)
         ws.T[...] = T_arr
-        ws.idx[...] = idx
-        ws.w[...] = w
+        self._temp_index_into(T_arr, ws.idx, ws.w)
 
-        # 五属性 fused 写入 — 同一次 idx/w
-        lo = self.table[:, idx]  # (5, N)
-        hi = self.table[:, idx + 1]  # (5, N)
-        val = lo + (hi - lo) * w[np.newaxis, :]  # (5, N)
-        ws.rho[...] = val[_PROP_IDX_RHO]
-        ws.cp[...] = val[_PROP_IDX_CP]
-        ws.h[...] = val[_PROP_IDX_H]
-        ws.k[...] = val[_PROP_IDX_K]
-        ws.mu[...] = val[_PROP_IDX_MU]
+        # 五属性逐个写入 — 避免 fused (5, N) 中间数组
+        self._write_prop(ws, "rho", _PROP_IDX_RHO)
+        self._write_prop(ws, "cp", _PROP_IDX_CP)
+        self._write_prop(ws, "h", _PROP_IDX_H)
+        self._write_prop(ws, "k", _PROP_IDX_K)
+        self._write_prop(ws, "mu", _PROP_IDX_MU)
+
+    def _write_prop(self, ws: PropertyWorkspace, attr: str, prop_idx: int) -> None:
+        row = self.table[prop_idx]
+        lo = row[ws.idx]
+        hi = row[ws.idx + 1]
+        getattr(ws, attr)[...] = lo + (hi - lo) * ws.w
 
     # ------------------------------------------------------------------
     # 内部
@@ -276,6 +277,15 @@ class CompiledEGMixture:
         idx = np.clip(idx, 0, len(TEMP_NODES) - 2)
         w = z - idx
         return idx, w
+
+    def _temp_index_into(
+        self, T_arr: np.ndarray, idx_out: np.ndarray, w_out: np.ndarray
+    ) -> None:
+        """T (N,) → idx (N,) intp, w (N,) float64 — 直接写入 out 数组，零分配。"""
+        z = (T_arr - _T_MIN) * (1.0 / _T_STEP)
+        np.floor(z, out=idx_out)
+        np.clip(idx_out, 0, len(TEMP_NODES) - 2, out=idx_out)
+        w_out[...] = z - idx_out
 
     def _fused_eval(self, T_arr: np.ndarray) -> np.ndarray:
         """给定 (N,) 温度数组，返回融合的 (5, N) 结果。"""
