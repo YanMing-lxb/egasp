@@ -22,6 +22,7 @@ from egasp.data.egasp_data import (
 )
 from egasp.exceptions import (
     CompilationError,
+    InvalidInputError,
     MissingPropertyDataError,
     PropertyOutOfRangeError,
 )
@@ -65,15 +66,26 @@ class CompiledEGMixture:
     """固定浓度乙二醇水溶液的预编译物性表 + 融合求值器。
 
     使用 :func:`compile_mixture` 构造，重复调用相同浓度会命中 LRU cache。
+    所有内部 ndarray 在构造完成后均设 writeable=False，防止外部修改污染缓存。
     """
 
     conc: float
     table: np.ndarray  # (5, 33) 固定浓度下的五物性温度节点值
     dtable: np.ndarray  # (5, 33) 区间内导数（legacy-linear 下为常数）
     h_nodes: np.ndarray  # (33,) h 表，供 temperature_from_h() 反解
+    # --- 公共有效域（五物性同时有效）---
     Tmin: float
     Tmax: float
     validity: bool  # 整个 [Tmin, Tmax] 内五物性均无 NaN
+    # --- 每属性独立有效温度节点索引 ---
+    valid_start_idx: np.ndarray  # (5,) 每属性第一个有效 T 节点索引
+    valid_end_idx: np.ndarray  # (5,) 每属性最后一个有效 T 节点索引
+    # --- temperature_from_h 专用 ---
+    h_valid_idx: np.ndarray  # h 有效的温度节点索引切片
+    hmin: float
+    hmax: float
+    h_mono: bool  # 编译阶段验证：h_valid 是否严格单调递增
+    # --- fb 值 ---
     freezing_point: float | None
     boiling_point: float | None
     mass_fraction: float | None
@@ -87,13 +99,14 @@ class CompiledEGMixture:
         """批量返回五物性 `(5, N)` ndarray；标量输入返回 `(5,)`。
 
         顺序固定: [rho, cp, h, k, mu]。内部一次 idx/w → 五物性共享。
-        超出有效范围 raise PropertyOutOfRangeError。
+        超出五物性公共有效域 raise PropertyOutOfRangeError。
+        NaN/Inf raise InvalidInputError。
         """
         T_arr = np.asarray(T, dtype=np.float64)
         is_scalar = T_arr.ndim == 0
         if is_scalar:
             T_arr = T_arr.reshape(1)
-        self._check_range(T_arr)
+        self._check_range_common(T_arr)
         result = self._fused_eval(T_arr)  # (5, N)
         if is_scalar:
             result = result[:, 0]  # → (5,)
@@ -109,7 +122,7 @@ class CompiledEGMixture:
             raise ValueError(
                 f"out shape 应为 ({_N_PROPS}, {T_arr.size})，实际 {out.shape}"
             )
-        self._check_range(T_arr)
+        self._check_range_common(T_arr)
         out[...] = self._fused_eval(T_arr)
 
     # -- 单属性快捷 -------------------------------------------------------
@@ -130,9 +143,9 @@ class CompiledEGMixture:
         return self._single_eval(T, _PROP_IDX_MU)
 
     def mu_into(self, T: np.ndarray, out: np.ndarray) -> None:
-        """壁面粘度专用 fast path — 只计算 mu。"""
+        """壁面粘度专用 fast path — 只计算 mu（检查公共域）。"""
         T_arr = np.asarray(T, dtype=np.float64).ravel()
-        self._check_range(T_arr)
+        self._check_range_common(T_arr)
         idx, w = self._temp_index(T_arr)
         lo = self.table[_PROP_IDX_MU, idx]
         hi = self.table[_PROP_IDX_MU, idx + 1]
@@ -149,19 +162,34 @@ class CompiledEGMixture:
     def temperature_from_h(self, h: float | np.ndarray) -> float | np.ndarray:
         """固定浓度下 h→T 一次反解（线性插值区间 O(log n) 搜索）。
 
+        仅在编译阶段已识别的有效 h slice 上搜索；
+        超出 [hmin, hmax]  raise PropertyOutOfRangeError；
+        h 含 NaN/Inf raise InvalidInputError。
         legacy-linear 模式下与 PHEx 现有二分反解等价，数值误差在 1e-12 量级。
         """
         h_arr = np.asarray(h, dtype=np.float64)
         is_scalar = h_arr.ndim == 0
         h_vals = h_arr[None] if is_scalar else h_arr
 
-        h_nodes = self.h_nodes
-        idx = np.searchsorted(h_nodes, h_vals) - 1
-        idx = np.clip(idx, 0, len(h_nodes) - 2)
-        h_lo = h_nodes[idx]
-        h_hi = h_nodes[idx + 1]
-        T_lo = TEMP_NODES[idx]
-        T_hi = TEMP_NODES[idx + 1]
+        if not np.all(np.isfinite(h_vals)):
+            raise InvalidInputError("焓值包含 NaN 或 inf")
+
+        # 严格范围检查 — 不做外推
+        lo_viol = np.min(h_vals) < self.hmin
+        hi_viol = np.max(h_vals) > self.hmax
+        if lo_viol or hi_viol:
+            viol = np.min(h_vals) if lo_viol else np.max(h_vals)
+            raise PropertyOutOfRangeError(float(viol), self.hmin, self.hmax, param="焓")
+
+        # 用有效 h slice 做 searchsorted（要求单调，编译阶段已验证）
+        h_valid_nodes = self.h_nodes[self.h_valid_idx]  # 已切到纯值段
+        T_valid_nodes = TEMP_NODES[self.h_valid_idx]
+        idx = np.searchsorted(h_valid_nodes, h_vals) - 1
+        idx = np.clip(idx, 0, len(h_valid_nodes) - 2)
+        h_lo = h_valid_nodes[idx]
+        h_hi = h_valid_nodes[idx + 1]
+        T_lo = T_valid_nodes[idx]
+        T_hi = T_valid_nodes[idx + 1]
         w = (h_vals - h_lo) / (h_hi - h_lo)
         result = T_lo + (T_hi - T_lo) * w
 
@@ -176,7 +204,7 @@ class CompiledEGMixture:
         is_scalar = T_arr.ndim == 0
         if is_scalar:
             T_arr = T_arr.reshape(1)
-        self._check_range(T_arr)
+        self._check_range_prop(T_arr, prop_idx)
         idx, _w = self._temp_index(T_arr)
         deriv = self.dtable[prop_idx, idx]
         return float(deriv[0]) if is_scalar else deriv
@@ -221,7 +249,7 @@ class CompiledEGMixture:
     def update_into(self, T: np.ndarray, ws: PropertyWorkspace) -> None:
         """原地更新 workspace 的所有字段。"""
         T_arr = np.asarray(T, dtype=np.float64).ravel()
-        self._check_range(T_arr)
+        self._check_range_common(T_arr)
         idx, w = self._temp_index(T_arr)
         ws.T[...] = T_arr
         ws.idx[...] = idx
@@ -261,21 +289,42 @@ class CompiledEGMixture:
         is_scalar = T_arr.ndim == 0
         if is_scalar:
             T_arr = T_arr.reshape(1)
-        self._check_range(T_arr)
+        self._check_range_prop(T_arr, prop_idx)
         idx, w = self._temp_index(T_arr)
         lo = self.table[prop_idx, idx]
         hi = self.table[prop_idx, idx + 1]
         result = lo + (hi - lo) * w
         return float(result[0]) if is_scalar else result
 
-    def _check_range(self, T_arr: np.ndarray) -> None:
+    # ---- 有效域检查 ---------------------------------------------------
+
+    def _check_range_common(self, T_arr: np.ndarray) -> None:
+        """五物性公共有效域 + NaN/Inf 检查。"""
         if T_arr.size == 0:
             return
-        lo_viol = np.min(T_arr) if np.any(T_arr < _T_MIN) else None
-        hi_viol = np.max(T_arr) if np.any(T_arr > _T_MAX) else None
-        if lo_viol is not None or hi_viol is not None:
-            viol = lo_viol if lo_viol is not None else hi_viol
-            raise PropertyOutOfRangeError(float(viol), _T_MIN, _T_MAX, param="温度")
+        if not np.all(np.isfinite(T_arr)):
+            raise InvalidInputError("温度包含 NaN 或 inf")
+        lo_viol = np.min(T_arr) < self.Tmin
+        hi_viol = np.max(T_arr) > self.Tmax
+        if lo_viol or hi_viol:
+            viol = np.min(T_arr) if lo_viol else np.max(T_arr)
+            raise PropertyOutOfRangeError(
+                float(viol), self.Tmin, self.Tmax, param="温度"
+            )
+
+    def _check_range_prop(self, T_arr: np.ndarray, prop_idx: int) -> None:
+        """单属性有效域 + NaN/Inf 检查。"""
+        if T_arr.size == 0:
+            return
+        if not np.all(np.isfinite(T_arr)):
+            raise InvalidInputError("温度包含 NaN 或 inf")
+        lo_node = TEMP_NODES[int(self.valid_start_idx[prop_idx])]
+        hi_node = TEMP_NODES[int(self.valid_end_idx[prop_idx])]
+        lo_viol = np.min(T_arr) < lo_node
+        hi_viol = np.max(T_arr) > hi_node
+        if lo_viol or hi_viol:
+            viol = np.min(T_arr) if lo_viol else np.max(T_arr)
+            raise PropertyOutOfRangeError(float(viol), lo_node, hi_node, param="温度")
 
 
 # ---------------------------------------------------------------------------
@@ -357,27 +406,67 @@ def compile_mixture(concentration: float) -> CompiledEGMixture:
     # ---- h 表副本（反解用）----------------------------------------------
     h_nodes = table[_PROP_IDX_H, :].copy()
 
-    # ---- 有效温度范围 ---------------------------------------------------
-    # 检查五物性是否同时有界（非 NaN），取交集
-    valid_mask = np.all(~np.isnan(table), axis=0)  # (33,) bool
-    if not np.any(valid_mask):
+    # ---- 每属性独立有效温区 ---------------------------------------------
+    # 对 table 每行 (每属性)，找 first valid / last valid T 节点索引
+    valid_start_idx = np.empty(_N_PROPS, dtype=np.intp)
+    valid_end_idx = np.empty(_N_PROPS, dtype=np.intp)
+    for p in range(_N_PROPS):
+        row = table[p, :]
+        valid_mask = ~np.isnan(row)
+        if not np.any(valid_mask):
+            raise MissingPropertyDataError(
+                concentration=conc_used,
+                message=f"浓度 {conc_used} 下属性 {p} 无有效数据",
+            )
+        first = int(np.argmax(valid_mask))
+        # np.argmax 找到第一个 True；找最后一个：翻转后 argmax
+        last = int(len(row) - 1 - np.argmax(valid_mask[::-1]))
+        # 验证中间无 NaN（数据表要求连续有效域）
+        if not np.all(valid_mask[first : last + 1]):
+            raise CompilationError(
+                f"浓度 {conc_used} 属性 {p} 的有效温度区间不连续（中间存在 NaN）"
+            )
+        valid_start_idx[p] = first
+        valid_end_idx[p] = last
+
+    # ---- 公共有效域（五物性同时有效）-------------------------------------
+    common_start = int(np.max(valid_start_idx))
+    common_end = int(np.min(valid_end_idx))
+    Tmin = float(TEMP_NODES[common_start])
+    Tmax = float(TEMP_NODES[common_end])
+    # validity = 全部 33 节点均有效
+    validity = bool(common_start == 0 and common_end == len(TEMP_NODES) - 1)
+
+    # ---- temperature_from_h 专用 ----------------------------------------
+    # h 有效 slice（跳过前导/尾随 NaN）
+    h_row = h_nodes
+    h_valid_mask = ~np.isnan(h_row)
+    if not np.any(h_valid_mask):
         raise MissingPropertyDataError(
             concentration=conc_used,
-            message=f"浓度 {conc_used} 下全部物性均缺失有效数据",
+            message=f"浓度 {conc_used} 下焓数据全部缺失",
         )
-    valid_Ts = TEMP_NODES[valid_mask]
-    Tmin = float(valid_Ts[0])
-    Tmax = float(valid_Ts[-1])
-    validity = bool(np.all(valid_mask))
+    h_first = int(np.argmax(h_valid_mask))
+    h_last = int(len(h_row) - 1 - np.argmax(h_valid_mask[::-1]))
+    h_valid_idx = np.arange(h_first, h_last + 1, dtype=np.intp)
+    # 验证 h 在有效区间内严格递增（否则 searchsorted 语义不成立）
+    h_valid_vals = h_row[h_valid_idx]
+    if len(h_valid_vals) < 2:
+        raise CompilationError(f"浓度 {conc_used} 下有效焓节点不足 2 个，无法反解")
+    h_mono = bool(np.all(np.diff(h_valid_vals) > 0))
+    if not h_mono:
+        raise CompilationError(f"浓度 {conc_used} 下焓数据非严格单调递增，无法安全反解")
+    hmin = float(h_valid_vals[0])
+    hmax = float(h_valid_vals[-1])
 
     # ---- fb 值（冰点/沸点/质量浓度/体积浓度）-----------------------------
-    # 按 concentration 是 volume frac 还是 mass frac 来决定插值基准
-    volume_fraction = conc_used  # compile_mixture 的 concentration 参数是体积浓度
-    mass_fraction = _fb_interp(volume_fraction, axis=1)  # 从体积浓度 → 质量浓度
+    volume_fraction = conc_used
+    mass_fraction = _fb_interp(volume_fraction, axis=0)  # axis=0 = mass
     freezing_point = _fb_interp(volume_fraction, axis=2)
     boiling_point = _fb_interp(volume_fraction, axis=3)
 
-    return CompiledEGMixture(
+    # ---- 构造 + 设置所有数组为 readonly ----------------------------------
+    result = CompiledEGMixture(
         conc=conc_used,
         table=table,
         dtable=dtable,
@@ -385,11 +474,30 @@ def compile_mixture(concentration: float) -> CompiledEGMixture:
         Tmin=Tmin,
         Tmax=Tmax,
         validity=validity,
+        valid_start_idx=valid_start_idx,
+        valid_end_idx=valid_end_idx,
+        h_valid_idx=h_valid_idx,
+        hmin=hmin,
+        hmax=hmax,
+        h_mono=h_mono,
         freezing_point=freezing_point,
         boiling_point=boiling_point,
         mass_fraction=mass_fraction,
         volume_fraction=volume_fraction,
     )
+
+    # 防止 LRU 缓存对象被外部修改
+    for arr in (
+        result.table,
+        result.dtable,
+        result.h_nodes,
+        result.valid_start_idx,
+        result.valid_end_idx,
+        result.h_valid_idx,
+    ):
+        arr.flags.writeable = False
+
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -401,6 +509,8 @@ def _fb_interp(volume_fraction: float, axis: int) -> float | None:
     """从体积浓度插值 fb 表的某个列（mass/volume/freezing/boiling）。
 
     返回 float 或 None（该列在查询区间缺失数据）。
+    支持 exact node hit — 查询值恰为数据库节点时直接返回节点值，
+    不被相邻节点 NaN 阻断。
     """
     # axis 0 = mass, 1 = volume, 2 = freezing, 3 = boiling
     x_col = 1  # fb vol sorted → x 轴是 volume frac
@@ -412,7 +522,16 @@ def _fb_interp(volume_fraction: float, axis: int) -> float | None:
 
     vals = data[:, axis]
     xs = data[:, x_col]
-    # 找区间
+
+    # ---- exact node hit 优先 ----
+    hit = np.flatnonzero(np.isclose(xs, volume_fraction))
+    if hit.size > 0:
+        v = float(vals[int(hit[0])])
+        if np.isnan(v):
+            return None
+        return v
+
+    # ---- 非节点值：searchsorted + 两端有效检查 ----
     idx = int(np.searchsorted(xs, volume_fraction)) - 1
     idx = max(0, min(idx, len(xs) - 2))
     x_lo2 = float(xs[idx])
