@@ -28,8 +28,9 @@ from enum import Enum
 from typing import Any, ClassVar
 
 from egasp.core import EGASP
+from egasp.exceptions import InvalidInputError
 from egasp.logger_config import setup_logger
-from egasp.validate import Validate
+from egasp.validate import normalize_query_type
 
 
 # ===========================================================================
@@ -169,7 +170,6 @@ class ExcelIntegration:
     def __init__(self, verbose: bool = False, cache_size: int = 1000):
         self.logger = setup_logger(verbose)
         self.egasp = EGASP()
-        self.validate = Validate()
 
         # 性能统计
         self._total_calls = 0
@@ -192,8 +192,9 @@ class ExcelIntegration:
         """
         try:
             # 验证浓度类型
-            conc_type = self.validate.type_value(request.concentration_type)
-            if conc_type not in ["volume", "mass"]:
+            try:
+                normalize_query_type(request.concentration_type)
+            except InvalidInputError:
                 return (
                     False,
                     ErrorCode.INVALID_CONCENTRATION_TYPE,
@@ -393,9 +394,13 @@ class ExcelIntegration:
 
         return data
 
-    def _generate_cache_key(self, request: PropertyRequest) -> str:
-        """生成缓存键"""
-        return f"{request.concentration_type}:{request.concentration_value:.6f}:{request.temperature:.2f}"
+    def _generate_cache_key(self, request: PropertyRequest) -> tuple[str, float, float]:
+        """生成缓存键（精确 tuple，不做温度舍入）。"""
+        return (
+            request.concentration_type,
+            float(request.concentration_value),
+            float(request.temperature),
+        )
 
     def _check_cache(self, request: PropertyRequest) -> PropertyResult | None:
         """检查缓存"""
