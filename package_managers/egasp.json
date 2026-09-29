@@ -1,15 +1,15 @@
 {
-  "version": "0.2.0",
+  "version": "0.3.1",
   "description": "乙二醇水溶液属性查询程序",
   "homepage": "https://github.com/YanMing-lxb/egasp",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/YanMing-lxb/egasp/releases/download/v0.2.0/egasp-v0.2.0.7z",
+      "url": "https://github.com/YanMing-lxb/egasp/releases/download/v0.3.1/egasp-v0.3.1.7z",
       "hash": "placeholder"
     }
   },
-  "extract_dir": "egasp-v0.2.0",
+  "extract_dir": "egasp-v0.3.1",
   "bin": [
     "bin\\egasp.exe"
   ],
