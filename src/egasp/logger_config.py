@@ -1,4 +1,4 @@
-'''
+"""
  =======================================================================
  ····Y88b···d88P················888b·····d888·d8b·······················
  ·····Y88b·d88P·················8888b···d8888·Y8P·······················
@@ -19,9 +19,9 @@ Date         : 2025-04-22 10:43:55 +0800
 LastEditTime : 2026-09-22 10:20:41 +0800
 Github       : https://github.com/YanMing-lxb/
 FilePath     : /egasp/src/egasp/logger_config.py
-Description  : 
+Description  :
  -----------------------------------------------------------------------
-'''
+"""
 
 import logging
 
@@ -50,11 +50,29 @@ def setup_logger(verbose):
 
     # 如果设置了verbose 选项，则将日志级别设置为INFO，以便输出更多信息
     if verbose:
-        logging.basicConfig(level="INFO", format=FORMAT, datefmt="[%X]", handlers=[RichHandler(show_level=True, show_time=False, markup=True, show_path=False)])
+        logging.basicConfig(
+            level="INFO",
+            format=FORMAT,
+            datefmt="[%X]",
+            handlers=[
+                RichHandler(
+                    show_level=True, show_time=False, markup=True, show_path=False
+                )
+            ],
+        )
     else:
-        logging.basicConfig(level="WARNING", format=FORMAT, datefmt="[%X]", handlers=[RichHandler(show_level=True, show_time=False, markup=True, show_path=False)])
+        logging.basicConfig(
+            level="WARNING",
+            format=FORMAT,
+            datefmt="[%X]",
+            handlers=[
+                RichHandler(
+                    show_level=True, show_time=False, markup=True, show_path=False
+                )
+            ],
+        )
 
     # 获取名为'egasp.py'的日志记录器实例
-    logger = logging.getLogger('egasp.py')
+    logger = logging.getLogger("egasp.py")
 
     return logger
