@@ -1,7 +1,7 @@
 """egasp 库级入口 — 轻量，仅导入 numpy/data/core/compiled。
 
 CLI 入口通过 ``python -m egasp`` 触发（即 ``__main__.py``），不在本文件 eager 导入。
-这样 ``import egasp`` 的启动时间从 ~1.6s 降到 <100ms。
+这样 ``import egasp`` 的启动时间从 ~1.6s 降到 <10ms。
 """
 
 from egasp.compiled import CompiledEGMixture, PropertyWorkspace, compile_mixture
@@ -13,6 +13,7 @@ from egasp.exceptions import (
     MissingPropertyDataError,
     PropertyOutOfRangeError,
 )
+from egasp.version import __version__
 
 # 模块级兼容单例 — 供 CLI / Excel / 脚本使用
 _eg = EGASP()
@@ -30,7 +31,6 @@ def main() -> None:
 
 
 __all__ = [
-    # 旧 API 兼容
     "EGASP",
     "CompilationError",
     "CompiledEGMixture",
@@ -39,6 +39,7 @@ __all__ = [
     "MissingPropertyDataError",
     "PropertyOutOfRangeError",
     "PropertyWorkspace",
+    "__version__",
     "compile_mixture",
     "concentration_type_to_chinese",
     "fb_props",
