@@ -25,6 +25,6 @@ Description  :
 # -*- coding: utf-8 -*-
 
 __project_name__ = "egasp"
-__version__ = "0.2.3"
+__version__ = "0.3.0"
 __author__ = "焱铭"
 __url__ = "https://github.com/YanMing-lxb"
