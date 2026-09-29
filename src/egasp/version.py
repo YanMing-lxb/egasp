@@ -1,4 +1,4 @@
-'''
+"""
  =======================================================================
  ····Y88b···d88P················888b·····d888·d8b·······················
  ·····Y88b·d88P·················8888b···d8888·Y8P·······················
@@ -19,12 +19,12 @@ Date         : 2024-03-01 15:52:28 +0800
 LastEditTime : 2026-09-22 10:21:24 +0800
 Github       : https://github.com/YanMing-lxb/
 FilePath     : /egasp/src/egasp/version.py
-Description  : 
+Description  :
  -----------------------------------------------------------------------
-'''
+"""
 # -*- coding: utf-8 -*-
 
-__project_name__ = 'egasp'
-__version__ = '0.2.2'
-__author__ = '焱铭'
+__project_name__ = "egasp"
+__version__ = "0.2.3"
+__author__ = "焱铭"
 __url__ = "https://github.com/YanMing-lxb"
